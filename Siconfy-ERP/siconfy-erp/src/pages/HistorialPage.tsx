@@ -10,14 +10,23 @@ export const HistorialPage: React.FC<HistorialPageProps> = ({ setTabActual: _set
   const [calculations, setCalculations] = useState<CalculationHistory[]>([]);
   const [selectedCalculation, setSelectedCalculation] = useState<CalculationHistory | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // AGREGADO: Estado de carga
 
   useEffect(() => {
     loadCalculations();
   }, []);
 
   const loadCalculations = () => {
-    const history = getAllCalculations();
-    setCalculations(history);
+    try {
+      // La carga de localStorage es rápida, pero la envolvemos en try/catch y estado.
+      const history = getAllCalculations();
+      setCalculations(history);
+    } catch (error) {
+      console.error("Error al cargar el historial:", error);
+      // Aquí podrías agregar un estado de error
+    } finally {
+      setIsLoading(false); // Siempre termina la carga
+    }
   };
 
   const handleClearHistory = () => {
@@ -53,6 +62,15 @@ export const HistorialPage: React.FC<HistorialPageProps> = ({ setTabActual: _set
       currency: 'NIO'
     }).format(amount);
   };
+
+  // AGREGADO: Manejo del estado de carga para prevenir el error al inicio
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto p-4 text-center py-20">
+        <p className="text-xl text-blue-600 animate-pulse">Cargando historial...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-4">
