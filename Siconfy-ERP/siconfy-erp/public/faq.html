@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Preguntas frecuentes sobre la legislación laboral nicaragüense. Información detallada del Código del Trabajo, contratos, salarios mínimos, despidos, vacaciones y seguridad social.">
+    <meta name="keywords" content="legislacion laboral nicaragua, codigo del trabajo, contratos trabajo, salarios minimos nic, despidos, vacaciones aguinaldo, seguridad social inss">
+    <meta name="author" content="NominaNic">
+    <title>Preguntas Frecuentes - Legislación Laboral Nicaragua 2025</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <span class="logo">🇳🇮 NominaNic</span>
+            <div class="menu-links">
+                <a href="index.html">Inicio</a>
+                <a href="index.html#tabLiquidacion">Finiquito</a>
+                <a href="index.html#tabEmpleados">Empleados</a>
+                <a href="index.html#tabVacaciones">Vacaciones</a>
+                <a href="index.html#tabNomina">Nómina</a>
+                <a href="faq.html" class="active">FAQ</a>
+            </div>
+            <div id="auth-section" class="auth-section">
+                <button id="login-btn" onclick="login()" style="display:none;">Iniciar Sesión</button>
+                <span id="user-info" style="display:none;"></span>
+                <button id="logout-btn" onclick="logout()" style="display:none;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="ad-space ad-banner">
+        <span>Espacio Publicitario (Google Ads - Leaderboard 728x90)</span>
+    </div>
+
+    <div class="layout-grid">
+        <aside class="sidebar-left">
+            <div class="ad-space ad-vertical">
+                <span>Anuncio Vertical 300x600</span>
+            </div>
+            <div class="info-box">
+                <h4>💡 Tip del Día</h4>
+                <p>El Código del Trabajo regula todas las relaciones laborales en Nicaragua. Conoce tus derechos y obligaciones.</p>
+            </div>
+            <div class="info-box">
+                <h4>📅 Actualizaciones</h4>
+                <p>Reformas al Código del Trabajo 2024: Cambios en indemnizaciones y contratos temporales.</p>
+            </div>
+        </aside>
+
+        <main class="app-core">
+            <div class="contenedor">
+                <h1>Preguntas Frecuentes sobre Legislación Laboral Nicaragüense</h1>
+                <p>Información detallada basada en el Código del Trabajo (Ley No. 185) y normativas vigentes. Esta sección está diseñada para proporcionar conocimientos precisos y útiles sobre derechos laborales en Nicaragua, fortaleciendo la autoridad y confiabilidad de nuestro sitio.</p>
+
+                <div class="faq-container">
+                    <section class="faq-section">
+                        <h2>1. Contratos de Trabajo</h2>
+                        <details>
+                            <summary>¿Qué tipos de contratos de trabajo existen en Nicaragua?</summary>
+                            <p>Según el Artículo 1 del Código del Trabajo, el contrato de trabajo es el acuerdo entre empleador y trabajador para prestar servicios personales bajo subordinación y recibir remuneración. Los tipos principales son:</p>
+                            <ul>
+                                <li><strong>Contrato por tiempo indeterminado:</strong> Es el contrato ordinario sin límite de tiempo (Art. 2).</li>
+                                <li><strong>Contrato por tiempo determinado:</strong> Para trabajos específicos o temporales, no mayor a 2 años (Art. 3).</li>
+                                <li><strong>Contrato de prueba:</strong> Hasta 3 meses para evaluar al trabajador (Art. 4).</li>
+                                <li><strong>Contrato eventual:</strong> Para trabajos ocasionales o estacionales (Art. 5).</li>
+                            </ul>
+                            <p>Todos los contratos deben ser por escrito cuando superen 1 mes de duración (Art. 6).</p>
+                        </details>
+                        <details>
+                            <summary>¿Cuáles son los elementos esenciales de un contrato de trabajo?</summary>
+                            <p>El Artículo 7 establece que todo contrato debe contener: nombres y direcciones de las partes, fecha de inicio, duración, lugar de trabajo, funciones del trabajador, jornada laboral, salario y beneficios sociales.</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>2. Salarios Mínimos</h2>
+                        <details>
+                            <summary>¿Cuál es el salario mínimo en Nicaragua para 2025?</summary>
+                            <p>El salario mínimo se establece anualmente por el Ministerio del Trabajo (MITRAB). Para 2025, el salario mínimo general es de C$ 8,000.00 mensuales en la zona urbana y C$ 6,000.00 en la zona rural (Decreto No. 01-2025 del MITRAB). Los salarios mínimos sectoriales pueden variar por industria.</p>
+                        </details>
+                        <details>
+                            <summary>¿Cómo se calcula el salario mínimo por hora?</summary>
+                            <p>Según el Artículo 51, el salario mínimo diario se divide entre 8 horas. Para jornada mixta, se calcula proporcionalmente. El empleador debe garantizar al menos el salario mínimo, más beneficios como aguinaldo y vacaciones.</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué sucede si el salario es inferior al mínimo?</summary>
+                            <p>El Artículo 52 prohíbe salarios inferiores al mínimo. Las infracciones pueden resultar en multas administrativas y obligación de pago retroactivo (Art. 53).</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>3. Despidos y Terminación del Contrato</h2>
+                        <details>
+                            <summary>¿Cuáles son las causas justas para despedir a un trabajador?</summary>
+                            <p>El Artículo 40 establece causas justas de despido sin indemnización: negligencia grave, indisciplina, robo, abandono de trabajo, etc. El despido injustificado requiere indemnización según antigüedad (Art. 45).</p>
+                        </details>
+                        <details>
+                            <summary>¿Cómo se calcula la indemnización por despido injustificado?</summary>
+                            <p>Según el Artículo 45: 1 mes de salario por cada año de los primeros 3 años, más 20 días por año adicional, con tope máximo de 5 meses de salario. Se basa en el último salario mensual.</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué es el preaviso y cuándo aplica?</summary>
+                            <p>El Artículo 41 requiere preaviso de 7 días para contratos menores a 6 meses, 15 días para 6 meses a 1 año, y 1 mes para más de 1 año. En caso de despido injustificado, el preaviso se paga como indemnización adicional.</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>4. Vacaciones Anuales</h2>
+                        <details>
+                            <summary>¿Cuántos días de vacaciones corresponden por año trabajado?</summary>
+                            <p>El Artículo 78 establece: 15 días hábiles por año para los primeros 5 años, 20 días para 6-10 años, 25 días para más de 10 años. Se acumulan anualmente y deben pagarse al doble si no se toman (Art. 79).</p>
+                        </details>
+                        <details>
+                            <summary>¿Cómo se calculan las vacaciones proporcionales?</summary>
+                            <p>Según el Artículo 80, al terminar la relación laboral, se pagan vacaciones proporcionales: (días de vacaciones anuales / 360) x días trabajados en el año.</p>
+                        </details>
+                        <details>
+                            <summary>¿Cuándo se pierden las vacaciones?</summary>
+                            <p>Las vacaciones prescriben a los 2 años si no se reclaman (Art. 81). Sin embargo, en la práctica, se acumulan hasta la terminación del contrato.</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>5. Seguridad Social y Beneficios</h2>
+                        <details>
+                            <summary>¿Qué cubre el Instituto Nicaragüense de Seguridad Social (INSS)?</summary>
+                            <p>El INSS administra el seguro social obligatorio (Art. 88). Cubre: riesgos laborales, enfermedades, maternidad, invalidez, vejez, muerte y desempleo. La cotización es del 7% del salario para el trabajador y 19.25% para el empleador (Art. 89).</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué es el aguinaldo y cómo se calcula?</summary>
+                            <p>El aguinaldo o décimo tercer mes (Art. 93) es un mes de salario pagado antes del 10 de diciembre. Se calcula: (salario mensual x meses trabajados en el año) / 12. Está exento de IR hasta C$ 200,000.00 (Art. 94).</p>
+                        </details>
+                        <details>
+                            <summary>¿Cuáles son los derechos en caso de maternidad?</summary>
+                            <p>La trabajadora tiene derecho a 12 semanas de descanso prenatal y postnatal (Art. 132). El salario se paga por el INSS durante este período. El empleador debe mantener el puesto de trabajo.</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>6. Jornada Laboral y Horas Extras</h2>
+                        <details>
+                            <summary>¿Cuál es la jornada laboral máxima permitida?</summary>
+                            <p>El Artículo 61 establece jornada máxima de 8 horas diarias y 48 semanales. Las horas extras se pagan al 100% adicional (Art. 62).</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué días son considerados feriados obligatorios?</summary>
+                            <p>El Artículo 142 lista feriados: Año Nuevo, Semana Santa, Día del Trabajo (1 mayo), etc. Los trabajadores reciben doble pago si laboran en feriados (Art. 143).</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>7. Impuestos sobre la Renta (IR)</h2>
+                        <details>
+                            <summary>¿Cómo se calcula el IR sobre salarios?</summary>
+                            <p>La tabla progresiva del IR (Ley 822) para 2025 es:</p>
+                            <table class="tabla-info">
+                                <thead><tr><th>De C$</th><th>Hasta C$</th><th>Impuesto C$</th><th>%</th><th>Exceso de C$</th></tr></thead>
+                                <tbody>
+                                    <tr><td>0.01</td><td>100,000.00</td><td>0.00</td><td>0.0%</td><td>0.00</td></tr>
+                                    <tr><td>100,000.01</td><td>200,000.00</td><td>0.00</td><td>15.0%</td><td>100,000.00</td></tr>
+                                    <tr><td>200,000.01</td><td>350,000.00</td><td>15,000.00</td><td>20.0%</td><td>200,000.00</td></tr>
+                                    <tr><td>350,000.01</td><td>500,000.00</td><td>45,000.00</td><td>25.0%</td><td>350,000.00</td></tr>
+                                    <tr><td>500,000.01</td><td>A más</td><td>82,500.00</td><td>30.0%</td><td>500,000.00</td></tr>
+                                </tbody>
+                            </table>
+                            <p>El aguinaldo y indemnización están exentos hasta ciertos montos.</p>
+                        </details>
+                    </section>
+
+                    <section class="faq-section">
+                        <h2>8. Seguridad Social y Costos Patronales 2025</h2>
+                        <details>
+                            <summary>¿Cuáles son las tasas de contribución al INSS para 2025?</summary>
+                            <p>Según el Decreto No. 06-2019, las tasas patronales para 2025 son:</p>
+                            <table class="tabla-info">
+                                <thead><tr><th>Categoría Empresarial</th><th>Número de Trabajadores</th><th>Tasa Patronal INSS</th><th>Aporte INATEC</th><th>Costo Total</th></tr></thead>
+                                <tbody>
+                                    <tr><td>PYME/Mediana</td><td>1-50</td><td>21.50%</td><td>2.00%</td><td>23.50%</td></tr>
+                                    <tr><td>Gran Empresa</td><td>51+</td><td>22.50%</td><td>2.00%</td><td>24.50%</td></tr>
+                                </tbody>
+                            </table>
+                            <p>El trabajador aporta siempre el 7.00% de su salario. El empleador debe considerar estos costos adicionales al calcular la nómina.</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué cubren las diferentes ramas del INSS?</summary>
+                            <p>La tasa patronal se distribuye en ramas específicas:</p>
+                            <ul>
+                                <li><strong>Riesgos Profesionales (1.50%):</strong> Accidentes de trabajo y enfermedades ocupacionales</li>
+                                <li><strong>Víctimas de Guerra (1.50%):</strong> Pensiones para excombatientes históricos</li>
+                                <li><strong>Enfermedad y Maternidad (6.00%):</strong> Atención médica, subsidios por incapacidad y maternidad</li>
+                                <li><strong>Invalidez, Vejez y Muerte (13.50%):</strong> Sistema de pensiones a largo plazo</li>
+                            </ul>
+                            <p>El INATEC (2.00%) financia formación técnico-profesional.</p>
+                        </details>
+                        <details>
+                            <summary>¿Cómo afecta el tamaño de la empresa a los costos laborales?</summary>
+                            <p>El "salto" de 50 a 51 empleados incrementa la tasa patronal del 21.5% al 22.5%, generando un costo adicional inmediato del 1% sobre toda la nómina existente. Las empresas deben planificar cuidadosamente su crecimiento para evitar incrementos sorpresivos en los costos de seguridad social.</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué regímenes especiales existen para Zonas Francas?</summary>
+                            <p>Las Zonas Francas Industriales de Exportación operan bajo acuerdos tripartitos con tasas diferenciadas (generalmente 16%-17%) y están sujetas a incrementos salariales del 8% para 2025. Las empresas deben mantener certificación vigente de la CNZF para evitar reclasificación al régimen general con tasas del 22.5%.</p>
+                        </details>
+                        <details>
+                            <summary>¿Cuál es el calendario fiscal para pagos al INSS?</summary>
+                            <p>Los pagos mensuales vencen el día 17 del mes siguiente al período cotizable. Si el 17 cae en fin de semana, el pago debe anticiparse al viernes hábil anterior. Las declaraciones tardías generan recargos automáticos y posibles fiscalizaciones.</p>
+                        </details>
+                        <details>
+                            <summary>¿Qué riesgos existen en el cumplimiento de obligaciones sociales?</summary>
+                            <p>El INSS realiza fiscalizaciones cruzando información con la DGI. Las "glosas" por subdeclaración de salarios pueden incluir multas, intereses moratorios y pago retroactivo. Las empresas deben mantener soporte documental para viáticos y gastos variables, ya que cualquier pago recurrente sin respaldo puede reclasificarse como salario cotizable.</p>
+                        </details>
+                    </section>
+                </div>
+
+                <div class="botones-grupo" style="margin-top: 30px;">
+                    <a href="index.html" class="btn-action">Volver al Inicio</a>
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar-right">
+            <div class="ad-space ad-cuadrado">
+                <span>Anuncio Cuadrado 300x250</span>
+            </div>
+            <div class="info-box">
+                <h4>⚖️ Derechos Laborales</h4>
+                <p>Conoce tus derechos: estabilidad laboral, salario justo, beneficios sociales y protección contra despidos arbitrarios.</p>
+            </div>
+            <div class="info-box">
+                <h4>📊 Estadísticas Laborales</h4>
+                <p>Salario mínimo urbano: C$ 8,000<br>INSS cotización: 7%<br>Indemnización máxima: 150 días</p>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+    <div style="margin-top: 10px; font-size: 0.8rem;">
+        <a href="politica-privacidad.html" style="color: white; margin-right: 10px;">Política de Privacidad</a> |
+        <a href="terminos-uso.html" style="color: white; margin-left: 10px;">Términos de Uso</a>
+    </div>
+    <hr style="border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
+    <p>Siconfy ERP © 2025. Todos los derechos reservados.</p>
+    </footer>
+    
+    <!-- Scripts para FAQ - solo auth básico -->
+    <script type="module" src="src/main.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

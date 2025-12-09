@@ -1,0 +1,51 @@
+Resumen Ejecutivo de Progreso del proyecto Siconfy ERP hasta el momento.
+
+Hemos construido una aplicación web en React + Vite + Tailwind CSS enfocada en cálculos laborales precisos para Nicaragua.
+
+1. Estructura General (App.tsx)
+Navegación: Implementamos un sistema de pestañas para cambiar entre Salario Neto, Finiquito y Ayuda.
+
+Diseño: Unificamos el estilo visual con un fondo "Blanco Hueso" (#F9F6F0) para reducir la fatiga visual.
+
+Pie de Página (Footer): Agregamos enlaces funcionales a "Política de Privacidad" y "Términos de Uso", fijos al final de la pantalla.
+
+2. Módulo: Salario Neto (CalculadoraSalario.tsx)
+Funcionalidad: Cálculo automático al escribir (reactivo).
+
+UX: Navegación entre inputs con la tecla Enter y botón de limpieza.
+
+Lógica Corregida: Ajustamos la proyección anual del IR para pagos semanales y quincenales, asegurando que el impuesto sea exacto según la DGI.
+
+Formato: Moneda forzada a C$ (NIO) con comas para miles y dos decimales, evitando errores de región (ej. CA$).
+
+Impresión: Genera un "Comprobante de Pago" limpio, ocultando la interfaz de la calculadora.
+
+3. Módulo: Finiquito Laboral (CalculadoraLiquidacion.tsx)
+Réplica de Formato: Diseñamos el reporte de impresión para que sea idéntico a tu PDF de referencia (FINIQUITO_LIQ002.2.pdf), sin cuadrículas pesadas y con firmas al pie.
+
+Cálculo de Días:
+
+Corregimos la lógica 30/360 para ser inclusiva (+1 día).
+
+Ejemplo validado: Del 01/Dic al 30/May calcula exactamente 15 días de aguinaldo.
+
+Aguinaldo: Ajustado al factor exacto de 2.5 días por mes.
+
+IR en Liquidación (El ajuste crítico):
+
+Corregimos el cálculo del IR sobre Vacaciones y Salario Pendiente.
+
+Pasamos de una tasa fija aproximada a usar la Tabla Progresiva Anual proyectada, logrando la precisión exacta que solicitaste (coincidiendo con tu cálculo de C$ 2,936.78).
+
+Visualización: Los resultados detallados (la tabla) ahora se ven en pantalla antes de imprimir.
+
+4. Módulo: Ayuda (InformacionUtil.tsx)
+Creamos una sección informativa con:
+
+La Tabla Progresiva del IR Anual.
+
+Preguntas frecuentes (Cálculo de 2.5 días, Art 45, etc.).
+
+Estado Actual: Todo el código es funcional, preciso matemáticamente (8 decimales internos, 2 visibles) y con la estética profesional solicitada.
+
+Siguiente Paso: Mencionaste anteriormente pasar al módulo de Inventario. ¿Estás listo para comenzar con eso?
