@@ -16,12 +16,18 @@ export function saveCalculation(calculation: CalculationHistory): void {
 export function getAllCalculations(): CalculationHistory[] {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
-    const parsed = JSON.parse(stored);
-    // Convert date strings back to Date objects
-    return parsed.map((item: any) => ({
-      ...item,
-      fecha: new Date(item.fecha)
-    }));
+    try {
+      const parsed = JSON.parse(stored);
+      // Convert date strings back to Date objects
+      return parsed.map((item: any) => ({
+        ...item,
+        fecha: new Date(item.fecha)
+      }));
+    } catch (error) {
+      // Si falla el parseo, limpiar el localStorage y devolver array vacío
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
   }
   return [];
 }

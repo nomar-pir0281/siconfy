@@ -57,12 +57,19 @@ export const calcularNominaMensual = (
     if (frecuencia === 'semanal') factorProyeccion = 52; // Año comercial de semanas
 
     const salarioAnualProyectado = baseImponiblePeriodo * factorProyeccion;
-    
+
     // Paso C: Calcular Impuesto Anual
     const irAnual = calcularIRAnual(salarioAnualProyectado);
-    
+
     // Paso D: Traer el impuesto de vuelta al periodo
     const irPeriodo = irAnual / factorProyeccion;
+
+    // Paso E: Crear detalle del IR
+    const detalleIR = {
+        baseImponible: salarioAnualProyectado,
+        porcentaje: calcularPorcentajeIR(salarioAnualProyectado),
+        impuestoCalculado: irAnual
+    };
 
     // 5. TOTALES
     const totalDeducciones = inssLaboral + irPeriodo + deduccionesPrestamos;

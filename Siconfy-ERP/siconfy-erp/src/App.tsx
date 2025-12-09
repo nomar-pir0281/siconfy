@@ -9,11 +9,12 @@ import { PlanillaPage } from './pages/PlanillaPage';
 import { SeleccionInicialPage } from './pages/SeleccionInicialPage';
 import { SalarioPeriodicoPage } from './pages/SalarioPeriodicoPage';
 import { IndemnizacionPage } from './pages/IndemnizacionPage';
+import { AdBanner } from './components/AdBanner';
 import { HistorialPage } from './pages/HistorialPage';
 
 function App() {
   // Estado para controlar qué pantalla se ve
-  const [tabActual, setTabActual] = useState<'nomina' | 'liquidacion' | 'info' | 'empleados' | 'vacaciones' | 'planilla' | 'seleccionInicial' | 'salarioPeriodico' | 'indemnizacion' | 'historial'>('nomina');
+  const [tabActual, setTabActual] = useState<'nomina' | 'liquidacion' | 'info' | 'empleados' | 'vacaciones' | 'planilla' | 'seleccionInicial' | 'salarioPeriodico' | 'indemnizacion' | 'historial' | 'documentos'>('nomina');
 
   return (
     // ESTRUCTURA PRINCIPAL: Flex vertical para empujar el footer abajo

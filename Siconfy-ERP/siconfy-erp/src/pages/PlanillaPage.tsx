@@ -15,6 +15,7 @@ const PlanillaPageComponent: React.FC = () => {
         emp.comisiones,
         emp.incentivos,
         emp.deducciones,
+        0, // viaticos
         emp.frecuencia
       );
 
