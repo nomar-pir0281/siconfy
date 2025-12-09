@@ -18,13 +18,17 @@ export function getAllCalculations(): CalculationHistory[] {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
+      // Validación básica para asegurar que es un array
+      if (!Array.isArray(parsed)) return [];
+
       // Convert date strings back to Date objects
       return parsed.map((item: any) => ({
         ...item,
         fecha: new Date(item.fecha)
       }));
     } catch (error) {
-      // Si falla el parseo, limpiar el localStorage y devolver array vacío
+      console.error("Error leyendo historial (datos corruptos). Reseteando...", error);
+      // Si falla, limpiamos el storage para que la app vuelva a funcionar
       localStorage.removeItem(STORAGE_KEY);
       return [];
     }
