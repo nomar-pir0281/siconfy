@@ -58,7 +58,7 @@ function App() {
                     {tabActual === 'vacaciones' && <VacacionesPage />}
                     {tabActual === 'planilla' && <PlanillaPage />}
                     {tabActual === 'seleccionInicial' && <SeleccionInicialPage setTabActual={setTabActual as (tab: string) => void} />}
-                    {tabActual === 'salarioPeriodico' && <SalarioPeriodicoPage setTabActual={setTabActual as (tab: string) => void} />}
+                    {tabActual === 'salarioPeriodico' && <SalarioPeriodicoPage />}
                     {tabActual === 'indemnizacion' && <IndemnizacionPage setTabActual={setTabActual as (tab: string) => void} />}
                     {tabActual === 'historial' && <HistorialPage setTabActual={setTabActual as (tab: string) => void} />}
                     {tabActual === 'info' && <InformacionUtil />}
