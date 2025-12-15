@@ -17,7 +17,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col">
       
-      {/* NAVEGACIÓN SUPERIOR (INTACTA) */}
+      {/* NAVEGACIÓN */}
       <nav className="bg-slate-800 text-white p-4 shadow-md print:hidden z-50 relative">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 
@@ -39,7 +39,7 @@ function App() {
         </div>
       </nav>
 
-      {/* LAYOUT PRINCIPAL (INTACTO) */}
+      {/* LAYOUT PRINCIPAL CON SIDEBARS PARA ADS */}
       <div className="flex flex-grow justify-center w-full max-w-[1600px] mx-auto pt-4">
           
           {/* Ad Vertical Izquierdo */}
@@ -74,34 +74,15 @@ function App() {
 
       </div>
 
-      {/* FOOTER ACTUALIZADO CON REDES SOCIALES */}
-      <footer className="bg-slate-900 text-gray-400 py-6 mt-auto print:hidden text-center text-xs md:text-sm border-t border-slate-700 z-50 relative">
+<footer className="bg-slate-900 text-gray-400 py-6 mt-auto print:hidden text-center text-xs md:text-sm border-t border-slate-700 z-50 relative">
         <div className="max-w-6xl mx-auto px-4">
-          
-          {/* Sección de Redes Sociales Destacada */}
-          <div className="flex justify-center items-center gap-6 mb-4">
-            <a 
-              href="https://wa.me/50587662961" 
-              className="flex items-center gap-2 text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-full transition-all font-bold no-underline" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <span>📱</span> WhatsApp
-            </a>
-            <a 
-              href="https://facebook.com" 
-              className="flex items-center gap-2 text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full transition-all font-bold no-underline" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <span>f</span> Facebook
-            </a>
-          </div>
-
-          <div className="flex justify-center items-center space-x-4 mb-2 text-gray-500">
+          <div className="flex justify-center items-center space-x-4 mb-2">
+            {/* Se elimina target="_blank" para mantener la navegación en la misma pestaña */}
             <a href="/Politica.html" className="hover:text-white transition underline">Política de Privacidad</a>
             <span>|</span>
             <a href="/Terminos.html" className="hover:text-white transition underline">Términos de Uso</a>
+            <span>|</span>
+            <a href="https://wa.me/50587662961" className="hover:text-white transition underline" target="_blank" rel="noopener noreferrer">📱 WhatsApp</a>
           </div>
           <p>Siconfy ERP © 2025. Todos los derechos reservados.</p>
         </div>
