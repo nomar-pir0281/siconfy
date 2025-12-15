@@ -1,95 +1,13 @@
 // src/CalculadoraSalario.tsx
-import { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { calcularNominaMensual } from './utils/nomina';
-import { formatCurrency } from './utils/formatters';
+// IMPORTANTE: Usamos las nuevas funciones
+import { formatCurrency, formatNumberForDisplay, parseCurrency } from './utils/formatters';
 
 export const CalculadoraSalario = () => {
-    const [horasExtras, setHorasExtras] = useState<number>(0);
-    const [frecuencia, setFrecuencia] = useState<'mensual' | 'quincenal' | 'semanal'>('mensual');
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Raw input states
-    const [salarioInput, setSalarioInput] = useState<string>('');
-    const [comisionesInput, setComisionesInput] = useState<string>('');
-    const [incentivosInput, setIncentivosInput] = useState<string>('');
-    const [viaticosInput, setViaticosInput] = useState<string>('');
-    const [deduccionesInput, setDeduccionesInput] = useState<string>('');
-
-    // Parse currency values
-    const parseCurrency = (str: string) => parseFloat(str.replace(/[^0-9.-]/g, '')) || 0;
-    const salario = parseCurrency(salarioInput);
-    const comisiones = parseCurrency(comisionesInput);
-    const incentivos = parseCurrency(incentivosInput);
-    const viaticos = parseCurrency(viaticosInput);
-    const deducciones = parseCurrency(deduccionesInput);
-
-    // Handlers for currency inputs
-    const handleSalarioFocus = () => {
-        setSalarioInput(salarioInput.replace(/[$,]/g, ''));
-    };
-    const handleSalarioBlur = () => {
-        const num = parseFloat(salarioInput);
-        if (!isNaN(num) && num !== 0) {
-            setSalarioInput(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-        } else if (salarioInput === '') {
-            setSalarioInput('');
-        }
-    };
-    const handleComisionesFocus = () => {
-        setComisionesInput(comisionesInput.replace(/[$,]/g, ''));
-    };
-    const handleComisionesBlur = () => {
-        const num = parseFloat(comisionesInput);
-        if (!isNaN(num) && num !== 0) {
-            setComisionesInput(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-        } else if (comisionesInput === '') {
-            setComisionesInput('');
-        }
-    };
-    const handleIncentivosFocus = () => {
-        setIncentivosInput(incentivosInput.replace(/[$,]/g, ''));
-    };
-    const handleIncentivosBlur = () => {
-        const num = parseFloat(incentivosInput);
-        if (!isNaN(num) && num !== 0) {
-            setIncentivosInput(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-        } else if (incentivosInput === '') {
-            setIncentivosInput('');
-        }
-    };
-    const handleViaticosFocus = () => {
-        setViaticosInput(viaticosInput.replace(/[$,]/g, ''));
-    };
-    const handleViaticosBlur = () => {
-        const num = parseFloat(viaticosInput);
-        if (!isNaN(num) && num !== 0) {
-            setViaticosInput(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-        } else if (viaticosInput === '') {
-            setViaticosInput('');
-        }
-    };
-    const handleDeduccionesFocus = () => {
-        setDeduccionesInput(deduccionesInput.replace(/[$,]/g, ''));
-    };
-    const handleDeduccionesBlur = () => {
-        const num = parseFloat(deduccionesInput);
-        if (!isNaN(num) && num !== 0) {
-            setDeduccionesInput(num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-        } else if (deduccionesInput === '') {
-            setDeduccionesInput('');
-        }
-    };
-
-  // Calculate result using useMemo instead of useEffect + setState
-  const res = useMemo(() => {
-      if (salario > 0) {
-          return calcularNominaMensual(salario, horasExtras, comisiones, incentivos, deducciones, viaticos, frecuencia);
-      }
-      return null;
-  }, [salario, horasExtras, comisiones, incentivos, viaticos, deducciones, frecuencia]);
-
-    // Use the imported formatCurrency function
-
+    // UX: Navegación Enter para inputs y selects
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -97,10 +15,51 @@ export const CalculadoraSalario = () => {
             if (inputs) {
                 const arr = Array.from(inputs) as HTMLElement[];
                 const index = arr.indexOf(e.currentTarget);
+                // Saltar al siguiente elemento si existe
                 if (index > -1 && index < arr.length - 1) arr[index + 1].focus();
             }
         }
     };
+
+    const [horasExtras, setHorasExtras] = useState<number>(0);
+    const [frecuencia, setFrecuencia] = useState<'mensual' | 'quincenal' | 'semanal'>('mensual');
+
+    // ESTADOS PARA INPUTS (TEXTO)
+    // Usamos strings para permitir que el usuario escriba puntos/comas libremente
+    const [salarioInput, setSalarioInput] = useState<string>('');
+    const [comisionesInput, setComisionesInput] = useState<string>('');
+    const [incentivosInput, setIncentivosInput] = useState<string>('');
+    const [viaticosInput, setViaticosInput] = useState<string>('');
+    const [deduccionesInput, setDeduccionesInput] = useState<string>('');
+
+    // VALORES NUMÉRICOS (PARSEADOS) PARA CÁLCULO
+    const salario = parseCurrency(salarioInput);
+    const comisiones = parseCurrency(comisionesInput);
+    const incentivos = parseCurrency(incentivosInput);
+    const viaticos = parseCurrency(viaticosInput);
+    const deducciones = parseCurrency(deduccionesInput);
+
+    // HELPERS PARA LIMPIAR/FORMATEAR VISUALMENTE
+    const clean = (val: string) => val.replace(/,/g, ''); // Quitar comas al editar
+    const fmt = (val: string) => {
+        const num = parseCurrency(val);
+        return num > 0 ? formatNumberForDisplay(num) : ''; // Agregar comas al salir
+    };
+
+    // LÓGICA DE CÁLCULO PRESERVADA
+    const res = useMemo(() => {
+        if (salario > 0) {
+            return calcularNominaMensual(salario, {
+                horasExtras,
+                comisiones,
+                incentivos,
+                viaticos,
+                otrosDeducciones: deducciones, // Mapeo correcto preservado
+                frecuencia
+            });
+        }
+        return null;
+    }, [salario, horasExtras, comisiones, incentivos, viaticos, deducciones, frecuencia]);
 
     const handleLimpiar = () => {
       setHorasExtras(0);
@@ -131,12 +90,19 @@ export const CalculadoraSalario = () => {
                         <h3 className="text-sm font-bold text-blue-700 border-b pb-1">DATOS BASE</h3>
                         <div>
                             <label className="text-[10px] font-bold text-stone-500 uppercase">Salario Base</label>
-                            <input type="text" value={salarioInput} onChange={(e) => setSalarioInput(e.target.value)} onFocus={handleSalarioFocus} onBlur={handleSalarioBlur} onKeyDown={handleKeyDown}
-                                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0.00" autoFocus />
+                            <input type="text" 
+                                value={salarioInput} 
+                                onChange={(e) => setSalarioInput(e.target.value)} 
+                                onFocus={() => setSalarioInput(clean(salarioInput))} 
+                                onBlur={() => setSalarioInput(fmt(salarioInput))} 
+                                onKeyDown={handleKeyDown}
+                                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" 
+                                placeholder="0.00" autoFocus 
+                            />
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-stone-500 uppercase">Frecuencia</label>
-                            <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value as 'mensual' | 'quincenal' | 'semanal')} onKeyDown={handleKeyDown}
+                            <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value as any)} onKeyDown={handleKeyDown}
                                 className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800">
                                 <option value="mensual">Mensual</option>
                                 <option value="quincenal">Quincenal</option>
@@ -155,20 +121,38 @@ export const CalculadoraSalario = () => {
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-500 uppercase">Comisiones</label>
-                                <input type="text" value={comisionesInput} onChange={(e) => setComisionesInput(e.target.value)} onFocus={handleComisionesFocus} onBlur={handleComisionesBlur} onKeyDown={handleKeyDown}
-                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
+                                <input type="text" 
+                                    value={comisionesInput} 
+                                    onChange={(e) => setComisionesInput(e.target.value)} 
+                                    onFocus={() => setComisionesInput(clean(comisionesInput))} 
+                                    onBlur={() => setComisionesInput(fmt(comisionesInput))} 
+                                    onKeyDown={handleKeyDown}
+                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" 
+                                />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <div>
                                 <label className="text-[10px] font-bold text-stone-500 uppercase">Viáticos</label>
-                                <input type="text" value={viaticosInput} onChange={(e) => setViaticosInput(e.target.value)} onFocus={handleViaticosFocus} onBlur={handleViaticosBlur} onKeyDown={handleKeyDown}
-                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
+                                <input type="text" 
+                                    value={viaticosInput} 
+                                    onChange={(e) => setViaticosInput(e.target.value)} 
+                                    onFocus={() => setViaticosInput(clean(viaticosInput))} 
+                                    onBlur={() => setViaticosInput(fmt(viaticosInput))} 
+                                    onKeyDown={handleKeyDown}
+                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" 
+                                />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-stone-500 uppercase">Incentivos</label>
-                                <input type="text" value={incentivosInput} onChange={(e) => setIncentivosInput(e.target.value)} onFocus={handleIncentivosFocus} onBlur={handleIncentivosBlur} onKeyDown={handleKeyDown}
-                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
+                                <input type="text" 
+                                    value={incentivosInput} 
+                                    onChange={(e) => setIncentivosInput(e.target.value)} 
+                                    onFocus={() => setIncentivosInput(clean(incentivosInput))} 
+                                    onBlur={() => setIncentivosInput(fmt(incentivosInput))} 
+                                    onKeyDown={handleKeyDown}
+                                    className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" 
+                                />
                             </div>
                         </div>
                     </div>
@@ -177,13 +161,19 @@ export const CalculadoraSalario = () => {
                         <h3 className="text-sm font-bold text-red-700 border-b pb-1">DEDUCCIONES</h3>
                         <div>
                             <label className="text-[10px] font-bold text-stone-500 uppercase">Préstamos / Otros</label>
-                            <input type="text" value={deduccionesInput} onChange={(e) => setDeduccionesInput(e.target.value)} onFocus={handleDeduccionesFocus} onBlur={handleDeduccionesBlur} onKeyDown={handleKeyDown}
-                                className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
+                            <input type="text" 
+                                value={deduccionesInput} 
+                                onChange={(e) => setDeduccionesInput(e.target.value)} 
+                                onFocus={() => setDeduccionesInput(clean(deduccionesInput))} 
+                                onBlur={() => setDeduccionesInput(fmt(deduccionesInput))} 
+                                onKeyDown={handleKeyDown}
+                                className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" 
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* RESULTADOS EN PANTALLA */}
+                {/* RESULTADOS EN PANTALLA: C$ Manual Asegurado */}
                 {res && (
                     <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden border border-stone-200">
                         <div className="bg-green-700 text-white text-center py-2 font-bold uppercase tracking-wider text-sm">
@@ -207,7 +197,7 @@ export const CalculadoraSalario = () => {
                 )}
             </div>
 
-            {/* REPORTE DE IMPRESIÓN */}
+            {/* REPORTE DE IMPRESIÓN (Preservado y corregido formato) */}
             {res && (
                 <div className="hidden print:block p-8 bg-white text-black font-serif leading-relaxed">
                     <div className="text-center mb-8 border-b-2 border-black pb-4">
@@ -227,7 +217,7 @@ export const CalculadoraSalario = () => {
 
                             <tr><td className="py-1 px-2 pt-4 text-red-800">INSS Laboral (7%)</td><td className="py-1 px-2 pt-4 text-right text-red-800">-{formatCurrency(res.inssLaboral)}</td></tr>
                             <tr><td className="py-1 px-2 text-red-800">IR (Renta)</td><td className="py-1 px-2 text-right text-red-800">-{formatCurrency(res.ir)}</td></tr>
-                            <tr><td className="py-1 px-2 text-red-800">Otras Deducciones</td><td className="py-1 px-2 text-right text-red-800">-{formatCurrency(res.deducciones)}</td></tr>
+                            <tr><td className="py-1 px-2 text-red-800">Otras Deducciones</td><td className="py-1 px-2 text-right text-red-800">-{formatCurrency(res.otrosDeducciones)}</td></tr>
 
                             <tr className="font-bold text-lg border-t-2 border-black bg-green-50"><td className="py-4 px-2">NETO A RECIBIR</td><td className="py-4 px-2 text-right">{formatCurrency(res.salarioNeto)}</td></tr>
                         </tbody>

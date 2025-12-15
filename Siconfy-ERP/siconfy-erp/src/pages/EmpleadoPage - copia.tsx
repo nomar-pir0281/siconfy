@@ -38,16 +38,6 @@ export const EmpleadoPage = () => {
     useEffect(() => { loadEmployees(); }, []);
     const loadEmployees = () => { setEmployees(EmployeeService.getAll()); };
 
-    // --- EFECTO: Control de clase para impresión exclusiva ---
-    useEffect(() => {
-        if (isPrintModalOpen) {
-            document.body.classList.add('printing-doc');
-        } else {
-            document.body.classList.remove('printing-doc');
-        }
-        return () => document.body.classList.remove('printing-doc');
-    }, [isPrintModalOpen]);
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const empData = {
@@ -129,7 +119,7 @@ export const EmpleadoPage = () => {
         XLSX.writeFile(wb, "Empleados_Siconfy.xlsx");
     };
 
-    // --- DOCUMENTOS ---
+    // --- DOCUMENTOS EXPANDIDOS ---
     const renderDocumentContent = () => {
         if (!selectedEmployeeForPrint) return null;
         const emp = selectedEmployeeForPrint;
@@ -263,59 +253,18 @@ export const EmpleadoPage = () => {
         <div className="p-4 max-w-[1400px] mx-auto">
             <style>{`
                 @media print {
-                    /* CONFIGURACIÓN DE PÁGINA DINÁMICA */
-                    @page { 
-                        /* Si el modal está abierto, usa Letter Portrait (Vertical) */
-                        /* Si NO está abierto (imprime lista), usa Letter Landscape (Horizontal) */
-                        size: ${isPrintModalOpen ? 'letter portrait' : 'letter landscape'}; 
-                        margin: ${isPrintModalOpen ? '2cm' : '0.5cm'};
-                    }
-                    
-                    /* REGLA GLOBAL: Ocultar todo por defecto */
-                    body * { visibility: hidden; }
-
-                    /* CASO 1: IMPRIMIENDO DOCUMENTO (Modal Abierto) */
-                    body.printing-doc #doc-printable-area, 
-                    body.printing-doc #doc-printable-area * { 
-                        visibility: visible; 
-                    }
-                    body.printing-doc #doc-printable-area { 
-                        position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; border: none !important; 
-                    }
-
-                    /* CASO 2: IMPRIMIENDO LISTA (Modal Cerrado - HORIZONTAL) */
-                    body:not(.printing-doc) .table-container, 
-                    body:not(.printing-doc) .table-container * { 
-                        visibility: visible; 
-                    }
-                    body:not(.printing-doc) .table-container { 
-                        position: absolute; left: 0; top: 0; 
-                        width: 100% !important; 
-                        margin: 0 !important; 
-                        padding: 0 !important; 
-                        border: none !important; 
-                        overflow: visible !important;
-                    }
-                    
-                    /* Ajustes de Tabla para que quepa en Horizontal */
-                    body:not(.printing-doc) table {
-                        width: 100% !important;
-                        font-size: 9px !important; /* Fuente reducida */
-                    }
-                    body:not(.printing-doc) th, 
-                    body:not(.printing-doc) td {
-                        padding: 4px !important;
-                        white-space: nowrap !important; /* Evitar saltos de línea feos */
-                    }
-                    
-                    /* OCULTAR COLUMNA DE ACCIONES AL IMPRIMIR LA LISTA */
-                    body:not(.printing-doc) th:last-child,
-                    body:not(.printing-doc) td:last-child {
-                        display: none !important;
-                    }
-
-                    /* Utilidades */
+                    @page { size: letter; margin: 1.5cm; }
+                    body * { visibility: hidden; overflow: visible !important; height: auto !important; }
+                    #doc-printable-area, #doc-printable-area * { visibility: visible; }
+                    #doc-printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; border: none !important; }
                     .no-print { display: none !important; }
+                    .table-container { overflow: visible !important; display: block !important; }
+                    .table-container, .table-container * { visibility: visible; }
+                    .table-container { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; border: none !important; }
+                    table { width: 100%; font-size: 8px; }
+                    th, td { padding: 1px 2px !important; white-space: nowrap; }
+                    th { font-weight: bold !important; font-size: 9px !important; background-color: #e5e7eb !important; color: black !important; border-bottom: 1px solid #000 !important; }
+                    thead { display: table-header-group; }
                     input { border: none !important; background: transparent !important; padding: 0 !important; text-align: right; }
                     input::placeholder { color: transparent; }
                 }
@@ -324,13 +273,13 @@ export const EmpleadoPage = () => {
             <div className="flex justify-between items-center mb-6 print:hidden">
                 <h1 className="text-2xl font-bold text-gray-800">Directorio de Personal</h1>
                 <div className="flex gap-2">
-                    <button onClick={handlePrint} className="bg-slate-700 text-white px-4 py-2 rounded font-bold shadow hover:bg-slate-800 transition">🖨️ Imprimir Lista</button>
-                    <button onClick={handleExportExcel} className="bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 transition">📊 Excel</button>
-                    <button onClick={() => { resetForm(); setIsEditModalOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700 transition">+ Nuevo Empleado</button>
+                    <button onClick={handlePrint} className="bg-slate-700 text-white px-4 py-2 rounded font-bold shadow">🖨️ Imprimir Lista</button>
+                    <button onClick={handleExportExcel} className="bg-green-600 text-white px-4 py-2 rounded font-bold shadow">📊 Excel</button>
+                    <button onClick={() => { resetForm(); setIsEditModalOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow">+ Nuevo Empleado</button>
                 </div>
             </div>
 
-            {/* TABLA DE EMPLEADOS */}
+            {/* TABLA RESTAURADA CON TODAS LAS COLUMNAS */}
             <div className="bg-white rounded-lg shadow overflow-x-auto border border-gray-200 table-container">
                 <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead className="bg-slate-800 text-white text-xs uppercase">
@@ -386,7 +335,7 @@ export const EmpleadoPage = () => {
                 </table>
             </div>
 
-            {/* MODAL EDICION */}
+            {/* MODAL EDICION (SIN CAMBIOS VISIBLES, SOLO LOGICA MANTENIDA) */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm print:hidden">
                     <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -445,7 +394,7 @@ export const EmpleadoPage = () => {
                 </div>
             )}
 
-            {/* MODAL PRINT (Ahora con ID único para CSS) */}
+            {/* MODAL PRINT (Mantenido) */}
             {isPrintModalOpen && selectedEmployeeForPrint && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 print:bg-white print:static print:block">
                     <div className="bg-white w-full max-w-4xl h-[90vh] flex flex-col md:flex-row overflow-hidden rounded shadow-2xl print:shadow-none print:h-auto print:w-full">
@@ -455,8 +404,8 @@ export const EmpleadoPage = () => {
                                 <button key={type} onClick={()=>setPrintDocType(type as any)} className={`text-left p-2 rounded text-sm uppercase font-bold ${printDocType===type?'bg-blue-600 text-white':'bg-white hover:bg-gray-200'}`}>{type}</button>
                             ))}
                             <div className="mt-auto flex flex-col gap-2">
-                                <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded font-bold hover:bg-slate-900 transition shadow">🖨️ IMPRIMIR</button>
-                                <button onClick={()=>setIsPrintModalOpen(false)} className="bg-red-100 text-red-700 py-2 rounded font-bold hover:bg-red-200 transition">Cerrar</button>
+                                <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded font-bold hover:bg-slate-900">🖨️ IMPRIMIR</button>
+                                <button onClick={()=>setIsPrintModalOpen(false)} className="bg-red-100 text-red-700 py-2 rounded font-bold">Cerrar</button>
                             </div>
                         </div>
                         <div className="w-full md:w-3/4 bg-gray-500 p-8 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">

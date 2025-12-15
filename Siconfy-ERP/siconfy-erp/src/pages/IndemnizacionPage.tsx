@@ -1,6 +1,7 @@
+// src/pages/IndemnizacionPage.tsx
 import React, { useState, useRef } from 'react';
-import { calcularIndemnizacion } from '../utils/nomina';
-import type { ResultadoIndemnizacion } from '../utils/nomina';
+import { calcularIndemnizacionManual, type ResultadoIndemnizacion } from '../utils/liquidacion';
+// IMPORTANTE: Usamos las nuevas funciones centralizadas para garantizar C$
 import { formatCurrency, parseCurrency, formatNumberForDisplay } from '../utils/formatters';
 import * as historialService from '../utils/historialService';
 
@@ -13,21 +14,34 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
   const [motivoCese, setMotivoCese] = useState<string>('Despido Injustificado / Sin Causa Justa');
   const [tipoSalario, setTipoSalario] = useState<'Fijo' | 'Variable'>('Fijo');
   const [antiguedad, setAntiguedad] = useState<number>(0);
+  
+  // Estado dual: Valor numérico (para cálculo) y Texto (para input formateado)
   const [salarioBase, setSalarioBase] = useState<number>(0);
-  const [salariosMes, setSalariosMes] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Raw input values
-  const [antiguedadInput, setAntiguedadInput] = useState<string>('');
   const [salarioBaseInput, setSalarioBaseInput] = useState<string>('');
-  const [salariosMesInputs, setSalariosMesInputs] = useState<string[]>(['', '', '', '', '', '']);
 
+  const [salariosMes, setSalariosMes] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  const [salariosMesInputs, setSalariosMesInputs] = useState<string[]>(['', '', '', '', '', '']);
+  
+  const [antiguedadInput, setAntiguedadInput] = useState<string>('');
   const [res, setRes] = useState<ResultadoIndemnizacion | null>(null);
+  
+  // Referencias para navegación con Enter
+  const inputsRef = useRef<Array<HTMLInputElement | HTMLSelectElement | HTMLButtonElement | null>>([]);
 
   const handleCalcular = () => {
+    // Validación de seguridad para no perder datos al calcular
     if (antiguedad > 0 && ((tipoSalario === 'Fijo' && salarioBase > 0) || (tipoSalario === 'Variable' && salariosMes.some(s => s > 0)))) {
-      const resultado = calcularIndemnizacion(motivoCese, tipoSalario, salarioBase, salariosMes, antiguedad);
+      const resultado = calcularIndemnizacionManual(
+        motivoCese, 
+        tipoSalario, 
+        salarioBase, 
+        salariosMes, 
+        antiguedad
+      );
+      
       setRes(resultado);
+      
+      // GUARDA EN HISTORIAL (Funcionalidad Preservada)
       if (resultado) {
         const inputs = {
           fechaCese,
@@ -45,18 +59,7 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
       }
     } else {
       setRes(null);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const inputs = containerRef.current?.querySelectorAll('input, select, button');
-      if (inputs) {
-        const arr = Array.from(inputs) as HTMLElement[];
-        const index = arr.indexOf(e.currentTarget);
-        if (index > -1 && index < arr.length - 1) arr[index + 1].focus();
-      }
+      alert("Por favor revise los datos ingresados (Antigüedad y Salarios).");
     }
   };
 
@@ -67,58 +70,87 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
     setAntiguedad(0);
     setSalarioBase(0);
     setSalariosMes([0, 0, 0, 0, 0, 0]);
+    // Limpiar inputs visuales
     setAntiguedadInput('');
     setSalarioBaseInput('');
     setSalariosMesInputs(['', '', '', '', '', '']);
     setRes(null);
+    // Retornar foco al inicio
+    if(inputsRef.current[0]) inputsRef.current[0].focus();
   };
 
-  // Blur handlers
-  const handleAntiguedadBlur = () => {
-    const numValue = parseFloat(antiguedadInput) || 0;
-    setAntiguedad(numValue);
-    setAntiguedadInput(numValue > 0 ? numValue.toString() : '');
+  // --- MANEJO DE INPUTS (Visual vs Lógico) ---
+
+  const handleAntiguedadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setAntiguedadInput(e.target.value);
+      setAntiguedad(parseFloat(e.target.value) || 0);
   };
 
+  // Manejo Salario Base (Fijo)
+  const handleSalarioBaseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSalarioBaseInput(val); // El usuario ve lo que escribe
+    setSalarioBase(parseCurrency(val)); // El sistema guarda el número limpio
+  };
   const handleSalarioBaseBlur = () => {
-    const numValue = parseCurrency(salarioBaseInput);
-    setSalarioBase(numValue);
-    setSalarioBaseInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
+    if (salarioBase > 0) setSalarioBaseInput(formatNumberForDisplay(salarioBase)); // Formato bonito al salir
   };
-
-  const handleSalariosMesBlur = (index: number) => {
-    const numValue = parseCurrency(salariosMesInputs[index]);
-    const newSalarios = [...salariosMes];
-    newSalarios[index] = numValue;
-    setSalariosMes(newSalarios);
-    const newInputs = [...salariosMesInputs];
-    newInputs[index] = numValue > 0 ? formatNumberForDisplay(numValue) : '';
-    setSalariosMesInputs(newInputs);
-  };
-
-  // Focus handlers
-  const handleAntiguedadFocus = () => {
-    setAntiguedadInput(antiguedadInput.replace(/,/g, ''));
-  };
-
   const handleSalarioBaseFocus = () => {
-    setSalarioBaseInput(salarioBaseInput.replace(/,/g, ''));
+    if (salarioBase > 0) setSalarioBaseInput(salarioBase.toString()); // Formato crudo al editar
   };
 
-  const handleSalariosMesFocus = (index: number) => {
+  // Manejo Salarios Variables (Matriz)
+  const handleSalarioMesChange = (index: number, val: string) => {
     const newInputs = [...salariosMesInputs];
-    newInputs[index] = newInputs[index].replace(/,/g, '');
+    newInputs[index] = val;
     setSalariosMesInputs(newInputs);
+
+    const newValues = [...salariosMes];
+    newValues[index] = parseCurrency(val);
+    setSalariosMes(newValues);
+  };
+  const handleSalarioMesBlur = (index: number) => {
+    const val = salariosMes[index];
+    if (val > 0) {
+        const newInputs = [...salariosMesInputs];
+        newInputs[index] = formatNumberForDisplay(val);
+        setSalariosMesInputs(newInputs);
+    }
+  };
+  const handleSalarioMesFocus = (index: number) => {
+    const val = salariosMes[index];
+    if (val > 0) {
+        const newInputs = [...salariosMesInputs];
+        newInputs[index] = val.toString();
+        setSalariosMesInputs(newInputs);
+    }
+  };
+
+  // UX: Navegación con Enter
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextInput = inputsRef.current[index + 1];
+      if (nextInput) {
+        nextInput.focus();
+        if (nextInput instanceof HTMLInputElement) nextInput.select();
+      }
+    }
   };
 
   return (
-    <div ref={containerRef} className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="print:hidden bg-[#F9F6F0] rounded-xl shadow-lg p-8 border border-stone-200 mt-4">
         <div className="flex justify-between items-center mb-6 border-b border-stone-300 pb-4">
           <h2 className="text-xl font-bold text-stone-800 uppercase tracking-wide">Cálculo de Indemnización / Liquidación</h2>
           <div className="space-x-2">
-            <button onClick={handleCalcular} className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded transition">
-              CALCULAR INDEMNIZACIÓN
+            {/* Index 20 asegura que sea el último en la secuencia de Tab */}
+            <button 
+                ref={el => inputsRef.current[20] = el} 
+                onClick={handleCalcular} 
+                className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded transition"
+            >
+              CALCULAR
             </button>
             <button onClick={handleLimpiar} className="px-4 py-1.5 text-xs font-bold text-stone-600 bg-stone-200 hover:bg-stone-300 rounded transition">
               LIMPIAR
@@ -134,37 +166,52 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
             <h3 className="text-sm font-bold text-blue-700 border-b pb-1">DATOS GENERALES</h3>
             <div>
               <label className="text-[10px] font-bold text-stone-500 uppercase">Fecha de Cese</label>
-              <input type="date" value={fechaCese} onChange={(e) => setFechaCese(e.target.value)} onKeyDown={handleKeyDown}
-                className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800" />
+              <input 
+                type="date" 
+                ref={el => inputsRef.current[0] = el} 
+                onKeyDown={e => handleKeyDown(e, 0)}
+                value={fechaCese} 
+                onChange={(e) => setFechaCese(e.target.value)}
+                className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800" 
+              />
             </div>
             <div>
               <label className="text-[10px] font-bold text-stone-500 uppercase">Motivo de Cese</label>
-              <select value={motivoCese} onChange={(e) => setMotivoCese(e.target.value)} onKeyDown={handleKeyDown}
-                className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800">
-                <option value="Despido Injustificado / Sin Causa Justa">Despido Injustificado / Sin Causa Justa</option>
-                <option value="Renuncia (con preaviso)">Renuncia (con preaviso)</option>
-                <option value="Renuncia (sin preaviso)">Renuncia (sin preaviso)</option>
+              <select 
+                ref={el => inputsRef.current[1] = el} 
+                onKeyDown={e => handleKeyDown(e, 1)}
+                value={motivoCese} 
+                onChange={(e) => setMotivoCese(e.target.value)}
+                className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800"
+              >
+                <option value="Despido Injustificado / Sin Causa Justa">Despido Injustificado</option>
+                <option value="Renuncia">Renuncia</option>
               </select>
             </div>
             <div>
               <label className="text-[10px] font-bold text-stone-500 uppercase">Tipo de Salario</label>
               <div className="space-y-1">
                 <label className="flex items-center">
-                  <input type="radio" value="Fijo" checked={tipoSalario === 'Fijo'} onChange={() => setTipoSalario('Fijo')}
-                    className="mr-2" />
+                  <input type="radio" value="Fijo" checked={tipoSalario === 'Fijo'} onChange={() => setTipoSalario('Fijo')} className="mr-2" />
                   Fijo
                 </label>
                 <label className="flex items-center">
-                  <input type="radio" value="Variable" checked={tipoSalario === 'Variable'} onChange={() => setTipoSalario('Variable')}
-                    className="mr-2" />
+                  <input type="radio" value="Variable" checked={tipoSalario === 'Variable'} onChange={() => setTipoSalario('Variable')} className="mr-2" />
                   Variable
                 </label>
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Años de Servicio</label>
-              <input type="number" value={antiguedadInput} onChange={(e) => setAntiguedadInput(e.target.value)} onFocus={handleAntiguedadFocus} onBlur={handleAntiguedadBlur} onKeyDown={handleKeyDown}
-                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0" autoFocus />
+              <label className="text-[10px] font-bold text-stone-500 uppercase">Años de Servicio (Antigüedad)</label>
+              <input 
+                type="number" 
+                ref={el => inputsRef.current[2] = el} 
+                onKeyDown={e => handleKeyDown(e, 2)}
+                value={antiguedadInput} 
+                onChange={handleAntiguedadChange}
+                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" 
+                placeholder="0" 
+              />
             </div>
           </div>
 
@@ -173,28 +220,38 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
             {tipoSalario === 'Fijo' ? (
               <div>
                 <label className="text-[10px] font-bold text-stone-500 uppercase">Salario Base</label>
-                <input type="text" value={salarioBaseInput} onChange={(e) => setSalarioBaseInput(e.target.value)} onFocus={handleSalarioBaseFocus} onBlur={handleSalarioBaseBlur} onKeyDown={handleKeyDown}
-                  className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0.00" />
+                <input 
+                    type="text" 
+                    ref={el => inputsRef.current[3] = el} 
+                    onKeyDown={e => handleKeyDown(e, 3)}
+                    value={salarioBaseInput} 
+                    onChange={handleSalarioBaseChange} 
+                    onFocus={handleSalarioBaseFocus} 
+                    onBlur={handleSalarioBaseBlur}
+                    className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" 
+                    placeholder="0.00" 
+                />
               </div>
             ) : (
               <div className="space-y-2">
                 {salariosMesInputs.map((input, index) => (
                   <div key={index}>
-                    <label className="text-[10px] font-bold text-stone-500 uppercase">Salario Mes {index + 1}</label>
-                    <input type="text" value={input} onChange={(e) => {
-                      const newInputs = [...salariosMesInputs];
-                      newInputs[index] = e.target.value;
-                      setSalariosMesInputs(newInputs);
-                    }} onFocus={() => handleSalariosMesFocus(index)} onBlur={() => handleSalariosMesBlur(index)} onKeyDown={handleKeyDown}
-                      className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0.00" />
+                    <label className="text-[10px] font-bold text-stone-500 uppercase">Mes {index + 1}</label>
+                    <input 
+                        type="text" 
+                        ref={el => inputsRef.current[3 + index] = el} 
+                        onKeyDown={e => handleKeyDown(e, 3 + index)}
+                        value={input} 
+                        onChange={(e) => handleSalarioMesChange(index, e.target.value)} 
+                        onFocus={() => handleSalarioMesFocus(index)} 
+                        onBlur={() => handleSalarioMesBlur(index)}
+                        className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm focus:ring-1 focus:ring-blue-500 outline-none" 
+                        placeholder="0.00" 
+                    />
                   </div>
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="space-y-3">
-            {/* Placeholder for future additions */}
           </div>
         </div>
 
@@ -202,11 +259,12 @@ export const IndemnizacionPage: React.FC<IndemnizacionPageProps> = ({ setTabActu
         {res && (
           <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden border border-stone-200">
             <div className="bg-green-700 text-white text-center py-2 font-bold uppercase tracking-wider text-sm">
-              Resultado de Indemnización
+              Resultado
             </div>
             <div className="p-6 text-center leading-loose">
               <div className="bg-green-50 rounded-lg border border-green-100 py-4">
-                <p className="text-xs text-green-800 font-bold uppercase">Indemnización</p>
+                <p className="text-xs text-green-800 font-bold uppercase">Indemnización (Art. 45)</p>
+                {/* AQUI SE GARANTIZA EL SÍMBOLO C$ */}
                 <p className="text-2xl font-extrabold text-green-700">{formatCurrency(res.indemnizacion)}</p>
                 <p className="text-sm text-stone-600 mt-2">{res.detalle}</p>
               </div>

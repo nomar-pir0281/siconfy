@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   ESTILOS DE IMPRESIÓN (SOLUCIÓN ROBUSTA)
+   ========================================================================== */
+@media print {
+  /* 1. Configuración de Página */
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
+  /* Clase específica para Planilla Horizontal */
+  @page :first {
+    margin-top: 0; /* A veces necesario para navegadores antiguos */
+  }
+
+  body.printing-landscape {
+    /* Forzar ancho para tablas grandes */
+    min-width: 1024px;
+  }
+  
+  /* 2. Ocultar TODO lo que no sea explícitamente imprimible */
+  body > *:not(.document-print-container):not(#root) {
+    display: none !important;
+  }
+
+  nav, footer, aside, .ad-banner, button, input, select, textarea, .print\:hidden {
+    display: none !important;
+  }
+
+  /* 3. Resetear contenedores para que el documento ocupe todo */
+  body, #root, main, .main-content {
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* 4. Contenedor Maestro de Documentos */
+  .document-print-container {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    z-index: 9999 !important;
+    font-size: 12pt;
+    font-family: 'Times New Roman', Times, serif;
+    color: black !important;
+    line-height: 1.5;
+  }
+
+  /* 5. Utilidades de Tabla para Impresión */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+  
+  /* Utilidad para forzar landscape via CSS si @page falla (fallback) */
+  .force-landscape {
+    width: 100vw;
+    height: 100vh;
+    overflow: visible;
+  }
+}

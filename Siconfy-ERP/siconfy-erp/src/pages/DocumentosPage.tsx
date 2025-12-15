@@ -1,652 +1,237 @@
-import React, { useState } from 'react';
+// src/pages/DocumentosPage.tsx
+import React, { useState, useEffect } from 'react';
+import { EmployeeService } from '../utils/dbService';
+import type { Employee } from '../types';
 import { formatCurrency } from '../utils/formatters';
 
-export const DocumentosPage: React.FC = () => {
-  const [selectedDoc, setSelectedDoc] = useState<string>('contrato');
-  const [formData, setFormData] = useState({
-    // Datos comunes
-    nombre: '',
-    cedula: '',
-    cargo: '',
-    fechaIngreso: '',
-    salarioBase: 0,
-    empresa: '[Nombre de la Empresa]',
-    representante: '[Nombre del Representante]',
-    // Para despido
-    fechaDespido: '',
-    motivoDespido: '',
-    // Para renuncia
-    fechaRenuncia: '',
-    fechaUltimoDia: '',
-    motivoRenuncia: ''
-  });
+export const DocumentosPage = () => {
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [docType, setDocType] = useState<'contrato' | 'constancia' | 'renuncia' | 'despido' | 'carta'>('constancia');
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+    useEffect(() => {
+        setEmployees(EmployeeService.getAll());
+    }, []);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-NI', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+    const handlePrint = () => window.print();
 
-  const renderForm = () => {
-    switch (selectedDoc) {
-      case 'contrato':
+    // --- TEXTOS LEGALES COMPLETOS RESTAURADOS ---
+    const renderDocumentContent = () => {
+        if (!selectedEmployee) return <div className="text-gray-500 text-center py-10">Seleccione un empleado para visualizar el documento.</div>;
+
+        const date = new Date().toLocaleDateString('es-NI', { year: 'numeric', month: 'long', day: 'numeric' });
+        const companyName = "Jodidos Pero Contentos S.A";
+
         return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Empleado</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Nombre completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cédula</label>
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Número de cédula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cargo</label>
-                <input
-                  type="text"
-                  name="cargo"
-                  value={formData.cargo}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Puesto de trabajo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha de Ingreso</label>
-                <input
-                  type="date"
-                  name="fechaIngreso"
-                  value={formData.fechaIngreso}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Salario Base</label>
-                <input
-                  type="number"
-                  name="salarioBase"
-                  value={formData.salarioBase}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="0.00"
-                />
-              </div>
+            <div className="font-serif text-black leading-relaxed text-justify">
+                {/* 1. CONSTANCIA SALARIAL */}
+                {docType === 'constancia' && (
+                    <>
+                        <div className="text-right mb-12">
+                            <p>Managua, {date}</p>
+                        </div>
+                        <h2 className="text-center font-bold text-xl mb-12 uppercase underline">CONSTANCIA SALARIAL</h2>
+                        <p className="mb-6 font-bold">A QUIEN INTERESE:</p>
+                        <p className="mb-6">
+                            Por medio de la presente hacemos constar que el Sr(a). <strong>{selectedEmployee.nombre}</strong>, 
+                            identificado con cédula de identidad No. <strong>{selectedEmployee.cedula}</strong> y No. INSS <strong>{selectedEmployee.noInss || 'N/A'}</strong>, 
+                            labora para nuestra empresa <strong>{companyName}</strong> desde el <strong>{selectedEmployee.fechaIngreso}</strong>, 
+                            desempeñando el cargo de <strong>{selectedEmployee.cargo}</strong>.
+                        </p>
+                        <p className="mb-6">
+                            Hacemos constar que su ingreso mensual bruto es de <strong>{formatCurrency(selectedEmployee.salarioBase)}</strong> ({selectedEmployee.frecuenciaPago}).
+                        </p>
+                        <p className="mb-12">
+                            Se extiende la presente solicitud del interesado para los fines que estime convenientes.
+                        </p>
+                        <div className="mt-32 pt-4 border-t border-black w-64 text-center mx-auto">
+                            <p className="font-bold">Recursos Humanos</p>
+                            <p>{companyName}</p>
+                        </div>
+                    </>
+                )}
+
+                {/* 2. CARTA DE RENUNCIA */}
+                {docType === 'renuncia' && (
+                    <>
+                        <div className="text-right mb-10">
+                            <p className="font-bold">Managua, {date}</p>
+                        </div>
+                        <p className="mb-2 font-bold">Señores</p>
+                        <p className="mb-2 font-bold">Recursos Humanos</p>
+                        <p className="mb-8 font-bold">{companyName}</p>
+                        <p className="mb-6">Estimados señores:</p>
+                        <p className="mb-6">
+                            Yo, <strong>{selectedEmployee.nombre}</strong>, identificado con cédula de identidad No. <strong>{selectedEmployee.cedula}</strong>, 
+                            por este medio presento mi <strong>RENUNCIA IRREVOCABLE</strong> al cargo de <strong>{selectedEmployee.cargo}</strong> que he venido desempeñando en esta empresa.
+                        </p>
+                        <p className="mb-6">
+                            Esta renuncia será efectiva a partir del día [FECHA EFECTIVA], cumpliendo con el preaviso de ley correspondiente.
+                        </p>
+                        <p className="mb-6">
+                            Agradezco la oportunidad que se me brindó de formar parte de su equipo de trabajo y el apoyo recibido durante mi gestión.
+                        </p>
+                        <p className="mb-12">Atentamente,</p>
+                        <div className="mt-24 pt-4 border-t border-black w-64">
+                            <p className="font-bold">{selectedEmployee.nombre}</p>
+                            <p>Cédula: {selectedEmployee.cedula}</p>
+                        </div>
+                    </>
+                )}
+
+                {/* 3. CONTRATO LABORAL */}
+                {docType === 'contrato' && (
+                    <div className="text-sm">
+                        <h2 className="text-center font-bold text-lg mb-8 uppercase">CONTRATO INDIVIDUAL DE TRABAJO</h2>
+                        <p className="mb-6">
+                            Nosotros: <strong>{companyName}</strong>, sociedad constituida bajo las leyes de la República de Nicaragua, denominada en adelante EL EMPLEADOR; 
+                            y <strong>{selectedEmployee.nombre}</strong>, mayor de edad, con cédula No. <strong>{selectedEmployee.cedula}</strong>, denominado en adelante EL TRABAJADOR, 
+                            hemos convenido celebrar el presente Contrato de Trabajo:
+                        </p>
+                        <ol className="list-decimal pl-8 space-y-4 mb-8">
+                            <li><strong>DEL OBJETO:</strong> El Trabajador se obliga a prestar sus servicios personales bajo la dependencia directa del Empleador en el cargo de <strong>{selectedEmployee.cargo}</strong>.</li>
+                            <li><strong>DE LA JORNADA:</strong> La jornada de trabajo será de 48 horas semanales, distribuidas según las necesidades de la empresa.</li>
+                            <li><strong>DEL SALARIO:</strong> El Empleador pagará al Trabajador un salario de <strong>{formatCurrency(selectedEmployee.salarioBase)}</strong> pagaderos de forma {selectedEmployee.frecuenciaPago}, sujeto a las deducciones de Ley (INSS e IR).</li>
+                            <li><strong>VIGENCIA:</strong> Este contrato surte efecto a partir del <strong>{selectedEmployee.fechaIngreso}</strong> y es por tiempo Indeterminado.</li>
+                            <li><strong>OBLIGACIONES:</strong> Ambas partes se someten a las disposiciones del Código del Trabajo vigente.</li>
+                        </ol>
+                        <p className="mb-12">
+                            En fe de lo cual firmamos en dos ejemplares de un mismo tenor, en la ciudad de Managua, el {date}.
+                        </p>
+                        <div className="flex justify-between mt-24 px-8">
+                            <div className="border-t border-black w-48 text-center pt-2">
+                                <p className="font-bold">EL EMPLEADOR</p>
+                                <p className="text-xs">{companyName}</p>
+                            </div>
+                            <div className="border-t border-black w-48 text-center pt-2">
+                                <p className="font-bold">EL TRABAJADOR</p>
+                                <p className="text-xs">{selectedEmployee.nombre}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 4. CARTA DE DESPIDO (ART 45) */}
+                {docType === 'despido' && (
+                    <>
+                        <h2 className="text-center font-bold text-xl mb-12 uppercase">NOTIFICACIÓN DE TERMINACIÓN DE CONTRATO</h2>
+                        <div className="text-right mb-10">
+                            <p>Managua, {date}</p>
+                        </div>
+                        <p className="mb-4">Señor(a): <strong>{selectedEmployee.nombre}</strong></p>
+                        <p className="mb-8">Cargo: {selectedEmployee.cargo}</p>
+                        <p className="mb-6">Estimado(a) Señor(a):</p>
+                        <p className="mb-6">
+                            Por este medio le notificamos que la Dirección de la Empresa ha decidido dar por terminado su contrato de trabajo, 
+                            con efectos a partir del día de hoy, haciendo uso de la facultad que le confiere el <strong>Artículo 45</strong> del Código del Trabajo vigente.
+                        </p>
+                        <p className="mb-6">
+                            Le agradecemos presentarse al departamento de Recursos Humanos para realizar los trámites correspondientes a su liquidación final y pago de prestaciones sociales de ley.
+                        </p>
+                        <p className="mb-6">Sin otro particular a que hacer referencia.</p>
+                        <div className="mt-32 pt-4 border-t border-black w-64">
+                            <p className="font-bold">Gerencia General</p>
+                            <p>{companyName}</p>
+                        </div>
+                    </>
+                )}
+
+                {/* 5. CARTA DE RECOMENDACIÓN */}
+                {docType === 'carta' && (
+                    <>
+                        <h2 className="text-center font-bold text-xl mb-12 uppercase underline">CARTA DE RECOMENDACIÓN</h2>
+                        <p className="mb-8 font-bold">A QUIEN CORRESPONDA:</p>
+                        <p className="mb-6">
+                            Suscribo la presente para certificar que el Sr(a). <strong>{selectedEmployee.nombre}</strong>, 
+                            identificado con cédula No. <strong>{selectedEmployee.cedula}</strong>, laboró bajo mi supervisión en 
+                            <strong> {companyName}</strong>, desempeñando el cargo de <strong>{selectedEmployee.cargo}</strong>.
+                        </p>
+                        <p className="mb-6">
+                            Durante el tiempo que laboró con nosotros, desde el <strong>{selectedEmployee.fechaIngreso}</strong>, 
+                            demostró ser una persona honesta, eficiente, responsable y con gran espíritu de colaboración.
+                        </p>
+                        <p className="mb-6">
+                            Por sus méritos personales y profesionales, no tengo inconveniente en recomendarlo ampliamente para cualquier cargo que desee aplicar.
+                        </p>
+                        <p className="mb-12">
+                            Dado en la ciudad de Managua, a los {date}.
+                        </p>
+                        <div className="mt-32 pt-4 border-t border-black w-64">
+                            <p className="font-bold">Gerente General</p>
+                            <p>{companyName}</p>
+                        </div>
+                    </>
+                )}
             </div>
-          </div>
         );
+    };
 
-      case 'constancia-salarial':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Empleado</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Nombre completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cédula</label>
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Número de cédula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha de Ingreso</label>
-                <input
-                  type="date"
-                  name="fechaIngreso"
-                  value={formData.fechaIngreso}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Salario Base</label>
-                <input
-                  type="number"
-                  name="salarioBase"
-                  value={formData.salarioBase}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-          </div>
-        );
+    return (
+        <div className="max-w-7xl mx-auto p-4">
+            {/* PANEL DE CONTROL (Oculto al imprimir) */}
+            <div className="print:hidden flex flex-col md:flex-row gap-6 mb-8">
+                <div className="w-full md:w-1/3 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h2 className="text-lg font-bold mb-4 text-gray-700">Generar Documento</h2>
+                    
+                    <div className="mb-4">
+                        <label className="block text-sm font-bold mb-2">1. Seleccionar Empleado</label>
+                        <select className="w-full border p-2 rounded bg-gray-50" onChange={e => setSelectedEmployee(employees.find(x => x.id === parseInt(e.target.value)) || null)}>
+                            <option value="">-- Seleccionar --</option>
+                            {employees.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                        </select>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <label className="block text-sm font-bold mb-2">2. Tipo de Documento</label>
+                        <div className="space-y-2">
+                            {[
+                                {id: 'constancia', label: '📄 Constancia Salarial'},
+                                {id: 'contrato', label: '📝 Contrato Laboral'},
+                                {id: 'renuncia', label: '👋 Carta de Renuncia'},
+                                {id: 'despido', label: '🚫 Despido (Art 45)'},
+                                {id: 'carta', label: '🤝 Carta Recomendación'}
+                            ].map((doc) => (
+                                <button key={doc.id} onClick={() => setDocType(doc.id as any)} 
+                                    className={`w-full text-left px-3 py-2 rounded text-sm font-medium transition ${docType === doc.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                                    {doc.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-      case 'renuncia':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Empleado</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Nombre completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cédula</label>
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Número de cédula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cargo</label>
-                <input
-                  type="text"
-                  name="cargo"
-                  value={formData.cargo}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Puesto de trabajo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha de Renuncia</label>
-                <input
-                  type="date"
-                  name="fechaRenuncia"
-                  value={formData.fechaRenuncia}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Último Día Laboral</label>
-                <input
-                  type="date"
-                  name="fechaUltimoDia"
-                  value={formData.fechaUltimoDia}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">Motivo (Opcional)</label>
-                <textarea
-                  name="motivoRenuncia"
-                  value={formData.motivoRenuncia}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Describa el motivo de la renuncia"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'despido':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Empleado</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Nombre completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cédula</label>
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Número de cédula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha de Despido</label>
-                <input
-                  type="date"
-                  name="fechaDespido"
-                  value={formData.fechaDespido}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-1">Motivo del Despido</label>
-                <textarea
-                  name="motivoDespido"
-                  value={formData.motivoDespido}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Describa detalladamente las causas del despido"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'carta-laboral':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Empleado</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Nombre completo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cédula</label>
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Número de cédula"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cargo</label>
-                <input
-                  type="text"
-                  name="cargo"
-                  value={formData.cargo}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  placeholder="Puesto de trabajo"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha de Ingreso</label>
-                <input
-                  type="date"
-                  name="fechaIngreso"
-                  value={formData.fechaIngreso}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const renderPreview = () => {
-    switch (selectedDoc) {
-      case 'contrato':
-        return (
-          <div className="border border-gray-300 p-6 bg-gray-50 font-serif text-sm leading-relaxed print:bg-white print:border-none print:p-0">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold">CONTRATO DE TRABAJO</h3>
-              <p className="text-sm">Fecha: {new Date().toLocaleDateString('es-NI')}</p>
-            </div>
-
-            <div className="mb-6">
-              <p><strong>Entre las partes:</strong></p>
-              <p><strong>Empleador:</strong> {formData.empresa}</p>
-              <p><strong>Representado por:</strong> {formData.representante}</p>
-              <p><strong>Y</strong></p>
-              <p><strong>Trabajador:</strong> {formData.nombre || '[Nombre del Empleado]'}</p>
-              <p><strong>Cédula:</strong> {formData.cedula || '[Cédula]'}</p>
-            </div>
-
-            <div className="mb-6">
-              <p><strong>Se acuerda lo siguiente:</strong></p>
-              <ol className="ml-6 list-decimal">
-                <li>El trabajador se compromete a prestar sus servicios en el puesto de {formData.cargo || '[Puesto de Trabajo]'}.</li>
-                <li>La jornada laboral será de 8 horas diarias de lunes a sábado.</li>
-                <li>El salario mensual será de {formData.salarioBase ? formatCurrency(formData.salarioBase) : '[Salario]'}.</li>
-                <li>El contrato inicia el {formatDate(formData.fechaIngreso) || '[Fecha de Inicio]'}</li>
-                <li>El contrato tendrá una duración indeterminada.</li>
-              </ol>
-            </div>
-
-            <div className="flex justify-between mt-12">
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Empleador</p>
-                  <p>{formData.representante}</p>
+                    <button onClick={handlePrint} disabled={!selectedEmployee} className="w-full bg-slate-800 text-white py-3 rounded font-bold hover:bg-slate-900 disabled:opacity-50 transition shadow-lg">
+                        🖨️ IMPRIMIR DOCUMENTO
+                    </button>
                 </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Trabajador</p>
-                  <p>{formData.nombre || '[Nombre]'}</p>
+
+                {/* VISTA PREVIA (Pantalla) */}
+                <div className="w-full md:w-2/3 bg-gray-200 p-8 rounded border flex justify-center overflow-y-auto max-h-[800px]">
+                    <div className="bg-white shadow-xl w-[21.59cm] min-h-[27.94cm] p-[2.5cm] origin-top transform scale-90">
+                        {renderDocumentContent()}
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'constancia-salarial':
-        return (
-          <div className="border border-gray-300 p-6 bg-gray-50 font-serif text-sm leading-relaxed print:bg-white print:border-none print:p-0">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold">CONSTANCIA SALARIAL</h3>
-              <p className="text-sm">Fecha: {new Date().toLocaleDateString('es-NI')}</p>
             </div>
 
-            <div className="mb-6">
-              <p>La empresa {formData.empresa} certifica que:</p>
-              <p><strong>Sr(a). {formData.nombre || '[Nombre del Empleado]'}</strong></p>
-              <p>Con cédula de identidad número: <strong>{formData.cedula || '[Cédula]'}</strong></p>
-              <p>Labora en esta empresa desde: <strong>{formatDate(formData.fechaIngreso) || '[Fecha de Ingreso]'}</strong></p>
-            </div>
+            {/* ESTILOS DE IMPRESIÓN */}
+            <style>{`
+                @media print {
+                    @page {
+                        size: letter;
+                        margin: 2.5cm;
+                    }
+                    body * { visibility: hidden; }
+                    #printable-area, #printable-area * { visibility: visible; }
+                    #printable-area {
+                        position: absolute;
+                        left: 0; top: 0; width: 100%;
+                    }
+                }
+            `}</style>
 
-            <div className="mb-6">
-              <p>Devenga un salario mensual de <strong>{formData.salarioBase ? formatCurrency(formData.salarioBase) : '[Salario]'}</strong></p>
+            {/* ÁREA IMPRIMIBLE */}
+            <div id="printable-area" className="hidden print:block bg-white text-black">
+                {renderDocumentContent()}
             </div>
-
-            <div className="mb-6">
-              <p>Se expide la presente constancia a solicitud del interesado para los fines que estime conveniente.</p>
-            </div>
-
-            <div className="flex justify-between mt-12">
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Recursos Humanos</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Sello de la Empresa</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'renuncia':
-        return (
-          <div className="border border-gray-300 p-6 bg-gray-50 font-serif text-sm leading-relaxed print:bg-white print:border-none print:p-0">
-            <div className="text-right mb-6">
-              <p>Managua, Nicaragua, {formatDate(formData.fechaRenuncia) || '[Fecha de Renuncia]'}</p>
-            </div>
-
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold">CARTA DE RENUNCIA</h3>
-            </div>
-
-            <div className="mb-6">
-              <p><strong>Señor(a)</strong></p>
-              <p><strong>Gerente de Recursos Humanos</strong></p>
-              <p><strong>{formData.empresa}</strong></p>
-              <p><strong>Presente.</strong></p>
-            </div>
-
-            <div className="mb-6">
-              <p>Por medio de la presente, yo <strong>{formData.nombre || '[Nombre del Empleado]'}</strong>, con cédula de identidad número <strong>{formData.cedula || '[Cédula]'}</strong>, manifiesto mi decisión irrevocable de renunciar al puesto de trabajo que desempeño en la empresa.</p>
-              <p>Mi último día de trabajo será: <strong>{formatDate(formData.fechaUltimoDia) || '[Fecha]'}</strong></p>
-            </div>
-
-            {formData.motivoRenuncia && (
-              <div className="mb-6">
-                <p>El motivo de mi renuncia es: {formData.motivoRenuncia}</p>
-              </div>
-            )}
-
-            <div className="mb-6">
-              <p>Agradezco la oportunidad de haber formado parte de esta empresa y los conocimientos adquiridos durante mi permanencia.</p>
-            </div>
-
-            <div className="mb-6">
-              <p>Atentamente,</p>
-            </div>
-
-            <div className="text-center mt-12">
-              <div className="border-t border-black w-48 mx-auto pt-2">
-                <p className="font-bold">{formData.nombre || '[Nombre del Empleado]'}</p>
-                <p>Cédula: {formData.cedula || '[Cédula]'}</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'despido':
-        return (
-          <div className="border border-gray-300 p-6 bg-gray-50 font-serif text-sm leading-relaxed print:bg-white print:border-none print:p-0">
-            <div className="text-right mb-6">
-              <p>Managua, Nicaragua, {formatDate(formData.fechaDespido) || '[Fecha de Despido]'}</p>
-            </div>
-
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold">CARTA DE DESPIDO</h3>
-            </div>
-
-            <div className="mb-6">
-              <p><strong>Sr(a). {formData.nombre || '[Nombre del Empleado]'}</strong></p>
-              <p><strong>Cédula:</strong> {formData.cedula || '[Cédula]'}</p>
-              <p><strong>Presente.</strong></p>
-            </div>
-
-            <div className="mb-6">
-              <p>Por medio de la presente, se le comunica que a partir de la fecha, queda terminado su contrato de trabajo con la empresa {formData.empresa}, por las siguientes causas:</p>
-              <p className="mt-4">{formData.motivoDespido || '[Describa detalladamente las causas del despido]'}</p>
-            </div>
-
-            <div className="mb-6">
-              <p>Su último día de trabajo será: <strong>{formatDate(formData.fechaDespido) || '[Fecha]'}</strong></p>
-              <p>Se le recuerda que tiene derecho a las prestaciones laborales correspondientes según la legislación vigente.</p>
-            </div>
-
-            <div className="flex justify-between mt-12">
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Recursos Humanos</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Firma del Empleado</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'carta-laboral':
-        return (
-          <div className="border border-gray-300 p-6 bg-gray-50 font-serif text-sm leading-relaxed print:bg-white print:border-none print:p-0">
-            <div className="text-right mb-6">
-              <p>Managua, Nicaragua, {new Date().toLocaleDateString('es-NI')}</p>
-            </div>
-
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold">CARTA LABORAL</h3>
-            </div>
-
-            <div className="mb-6">
-              <p>A quien corresponda:</p>
-            </div>
-
-            <div className="mb-6">
-              <p>La empresa {formData.empresa} certifica que el(la) Sr(a). <strong>{formData.nombre || '[Nombre del Empleado]'}</strong>, con cédula de identidad número <strong>{formData.cedula || '[Cédula]'}</strong>, labora en esta empresa desde <strong>{formatDate(formData.fechaIngreso) || '[Fecha de Ingreso]'}</strong>, desempeñando el cargo de <strong>{formData.cargo || '[Cargo]'}</strong>.</p>
-            </div>
-
-            <div className="mb-6">
-              <p>Durante su permanencia en la empresa, ha demostrado responsabilidad y cumplimiento en sus funciones.</p>
-              <p>Se expide la presente carta a solicitud del interesado para los fines que estime conveniente.</p>
-            </div>
-
-            <div className="flex justify-between mt-12">
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Recursos Humanos</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t border-black w-48 pt-2">
-                  <p className="font-bold">Sello de la Empresa</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Formatos de Documentos</h1>
-
-      {/* Selector de documento */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 className="text-xl font-semibold mb-4">Seleccionar Documento</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <button
-            onClick={() => setSelectedDoc('contrato')}
-            className={`p-4 rounded-lg border-2 transition-all ${selectedDoc === 'contrato' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-300'}`}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-2">📄</div>
-              <div className="font-semibold">Contrato</div>
-            </div>
-          </button>
-          <button
-            onClick={() => setSelectedDoc('constancia-salarial')}
-            className={`p-4 rounded-lg border-2 transition-all ${selectedDoc === 'constancia-salarial' ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-300'}`}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-2">💰</div>
-              <div className="font-semibold">Constancia Salarial</div>
-            </div>
-          </button>
-          <button
-            onClick={() => setSelectedDoc('renuncia')}
-            className={`p-4 rounded-lg border-2 transition-all ${selectedDoc === 'renuncia' ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-red-300'}`}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-2">📝</div>
-              <div className="font-semibold">Carta de Renuncia</div>
-            </div>
-          </button>
-          <button
-            onClick={() => setSelectedDoc('despido')}
-            className={`p-4 rounded-lg border-2 transition-all ${selectedDoc === 'despido' ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-300'}`}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-2">⚖️</div>
-              <div className="font-semibold">Carta de Despido</div>
-            </div>
-          </button>
-          <button
-            onClick={() => setSelectedDoc('carta-laboral')}
-            className={`p-4 rounded-lg border-2 transition-all ${selectedDoc === 'carta-laboral' ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-300'}`}
-          >
-            <div className="text-center">
-              <div className="text-2xl mb-2">📋</div>
-              <div className="font-semibold">Carta Laboral</div>
-            </div>
-          </button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Formulario */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Datos del Documento</h2>
-          {renderForm()}
-        </div>
-
-        {/* Vista Previa */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Vista Previa</h2>
-            <button
-              onClick={() => window.print()}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 print:hidden"
-            >
-              🖨️ Imprimir
-            </button>
-          </div>
-          {renderPreview()}
-        </div>
-      </div>
-
-      {/* Estilos de impresión */}
-      <style>
-        {`
-          @media print {
-            .print\\:bg-white {
-              background-color: white !important;
-            }
-            .print\\:border-none {
-              border: none !important;
-            }
-            .print\\:p-0 {
-              padding: 0 !important;
-            }
-            .print\\:text-black {
-              color: black !important;
-            }
-          }
-        `}
-      </style>
-    </div>
-  );
+    );
 };

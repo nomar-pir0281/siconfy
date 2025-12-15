@@ -9,7 +9,7 @@ import { SeleccionInicialPage } from './pages/SeleccionInicialPage';
 import { SalarioPeriodicoPage } from './pages/SalarioPeriodicoPage';
 import { IndemnizacionPage } from './pages/IndemnizacionPage';
 import { HistorialPage } from './pages/HistorialPage';
-import { AdBanner } from './components/AdBanner'; // <--- IMPORTAR BANNER
+import { AdBanner } from './components/AdBanner'; 
 
 function App() {
   const [tabActual, setTabActual] = useState<'nomina' | 'liquidacion' | 'info' | 'empleados' | 'vacaciones' | 'planilla' | 'seleccionInicial' | 'salarioPeriodico' | 'indemnizacion' | 'historial'>('seleccionInicial');
@@ -17,9 +17,9 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col">
       
-      {/* NAVEGACIÓN - Oculta al imprimir */}
-      <nav className="bg-slate-800 text-white p-4 shadow-md print:hidden">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+      {/* NAVEGACIÓN */}
+      <nav className="bg-slate-800 text-white p-4 shadow-md print:hidden z-50 relative">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 
             className="text-xl font-bold flex items-center gap-2 cursor-pointer" 
             onClick={() => setTabActual('seleccionInicial')}
@@ -39,33 +39,50 @@ function App() {
         </div>
       </nav>
 
-      {/* PUBLICIDAD SUPERIOR */}
-      <AdBanner slot="top" />
+      {/* LAYOUT PRINCIPAL CON SIDEBARS PARA ADS */}
+      <div className="flex flex-grow justify-center w-full max-w-[1600px] mx-auto pt-4">
+          
+          {/* Ad Vertical Izquierdo */}
+          <div className="hidden lg:block mr-4">
+              <AdBanner slot="vertical-left" />
+          </div>
 
-      {/* CONTENIDO PRINCIPAL */}
-       <main className="flex-grow p-4 md:p-8">
-         {tabActual === 'nomina' && <CalculadoraSalario />}
-         {tabActual === 'liquidacion' && <CalculadoraLiquidacion />}
-         {tabActual === 'empleados' && <EmpleadoPage />}
-         {tabActual === 'vacaciones' && <VacacionesPage />}
-         {tabActual === 'planilla' && <PlanillaPage />}
-         {tabActual === 'seleccionInicial' && <SeleccionInicialPage setTabActual={setTabActual as (tab: string) => void} />}
-         {tabActual === 'salarioPeriodico' && <SalarioPeriodicoPage setTabActual={setTabActual as (tab: string) => void} />}
-         {tabActual === 'indemnizacion' && <IndemnizacionPage setTabActual={setTabActual as (tab: string) => void} />}
-         {tabActual === 'historial' && <HistorialPage setTabActual={setTabActual as (tab: string) => void} />}
-         {tabActual === 'info' && <InformacionUtil />}
-       </main>
+          {/* Contenido Central */}
+          <div className="flex flex-col w-full max-w-6xl px-2 md:px-0">
+               <AdBanner slot="top" />
+               
+               <main className="flex-grow bg-white md:bg-transparent shadow-sm md:shadow-none rounded-lg md:rounded-none overflow-hidden">
+                    {tabActual === 'nomina' && <CalculadoraSalario />}
+                    {tabActual === 'liquidacion' && <CalculadoraLiquidacion />}
+                    {tabActual === 'empleados' && <EmpleadoPage />}
+                    {tabActual === 'vacaciones' && <VacacionesPage />}
+                    {tabActual === 'planilla' && <PlanillaPage />}
+                    {tabActual === 'seleccionInicial' && <SeleccionInicialPage setTabActual={setTabActual as (tab: string) => void} />}
+                    {tabActual === 'salarioPeriodico' && <SalarioPeriodicoPage setTabActual={setTabActual as (tab: string) => void} />}
+                    {tabActual === 'indemnizacion' && <IndemnizacionPage setTabActual={setTabActual as (tab: string) => void} />}
+                    {tabActual === 'historial' && <HistorialPage setTabActual={setTabActual as (tab: string) => void} />}
+                    {tabActual === 'info' && <InformacionUtil />}
+               </main>
 
-      {/* PUBLICIDAD INFERIOR */}
-      <AdBanner slot="bottom" />
+               <AdBanner slot="bottom" />
+          </div>
 
-      {/* FOOTER - Oculto al imprimir */}
-      <footer className="bg-slate-900 text-gray-400 py-6 mt-auto print:hidden text-center text-xs md:text-sm border-t border-slate-700">
+          {/* Ad Vertical Derecho */}
+          <div className="hidden lg:block ml-4">
+              <AdBanner slot="vertical-right" />
+          </div>
+
+      </div>
+
+<footer className="bg-slate-900 text-gray-400 py-6 mt-auto print:hidden text-center text-xs md:text-sm border-t border-slate-700 z-50 relative">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-center items-center space-x-4 mb-2">
-            <a href="/Politica.html" target="_blank" className="hover:text-white transition underline">Política de Privacidad</a>
+            {/* Se elimina target="_blank" para mantener la navegación en la misma pestaña */}
+            <a href="/Politica.html" className="hover:text-white transition underline">Política de Privacidad</a>
             <span>|</span>
-            <a href="/Terminos.html" target="_blank" className="hover:text-white transition underline">Términos de Uso</a>
+            <a href="/Terminos.html" className="hover:text-white transition underline">Términos de Uso</a>
+            <span>|</span>
+            <a href="https://wa.me/50587662961" className="hover:text-white transition underline" target="_blank" rel="noopener noreferrer">📱 WhatsApp</a>
           </div>
           <p>Siconfy ERP © 2025. Todos los derechos reservados.</p>
         </div>

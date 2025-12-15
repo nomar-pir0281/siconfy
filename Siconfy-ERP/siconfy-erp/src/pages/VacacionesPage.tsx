@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import type { Employee } from '../types';
 import { EmployeeService } from '../utils/dbService';
-import { calcularAcumulacion, calcularAcumulacionTotal } from '../utils/prestaciones';
+import { formatCurrency } from '../utils/formatters';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const VacacionesPageComponent: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [diasUsados, setDiasUsados] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(new Date()); 
+  
+  // Estado para Modal
+  const [selectedForUsage, setSelectedForUsage] = useState<Employee | null>(null);
+  const [diasUsados, setDiasUsados] = useState<string>(''); // Cambiado a string para mejor manejo de inputs vacíos
   const [motivo, setMotivo] = useState('');
 
   const loadEmployees = useCallback(() => {
@@ -18,219 +24,253 @@ const VacacionesPageComponent: React.FC = () => {
     loadEmployees();
   }, [loadEmployees]);
 
+  // --- LÓGICA DE CÁLCULO (Regla: 30 días anuales) ---
+  const calcularProporcionalHoy = (fechaIngreso: string) => {
+    const start = new Date(fechaIngreso);
+    const now = new Date();
+
+    if (isNaN(start.getTime())) return 0;
+
+    const diffTime = now.getTime() - start.getTime();
+    if (diffTime < 0) return 0;
+
+    // (Días Trabajados / 360) * 30 - Año comercial de 360 días
+    const diasTrabajados = diffTime / (1000 * 60 * 60 * 24);
+    return (diasTrabajados / 360) * 30;
+  };
+
   const handleRegisterVacation = () => {
-    if (!selectedEmployee || diasUsados <= 0 || !motivo) {
-      alert('Seleccione empleado, días y motivo');
-      return;
+    const dias = parseFloat(diasUsados);
+    if (!selectedForUsage || isNaN(dias) || dias <= 0) {
+        alert("Por favor ingrese una cantidad de días válida.");
+        return;
     }
 
     try {
-      EmployeeService.registerVacationUsage(selectedEmployee.cedula, diasUsados, motivo);
-      setSelectedEmployee(null);
-      setDiasUsados(0);
-      setMotivo('');
-      loadEmployees();
+        // 1. Sincronizar el acumulado real calculado dinámicamente con el objeto empleado
+        // Esto es necesario porque dbService valida contra el valor guardado, que podría estar desactualizado.
+        const acumuladoReal = calcularProporcionalHoy(selectedForUsage.fechaIngreso);
+        
+        // Actualizamos temporalmente el acumulado total en el objeto antes de procesar la resta
+        const empleadoActualizado = { ...selectedForUsage, diasVacacionesAcumulados: acumuladoReal };
+        EmployeeService.update(empleadoActualizado);
+
+        // 2. Registrar el uso (dbService restará los días usados al acumuladoReal)
+        EmployeeService.registerVacationUsage(selectedForUsage.cedula, dias, motivo || 'Vacaciones');
+        
+        // 3. Limpieza y recarga
+        alert('Movimiento registrado exitosamente');
+        setSelectedForUsage(null);
+        setDiasUsados('');
+        setMotivo('');
+        loadEmployees();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar vacaciones');
+        alert(`Error al registrar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-NI', { style: 'currency', currency: 'NIO' }).format(amount);
+  const handleUpdateBalances = () => {
+    setLastUpdate(new Date());
+    loadEmployees();
+    alert(`Saldos recalculados al corte: ${new Date().toLocaleDateString()}`);
   };
 
-  const calcularValorVacaciones = (employee: Employee) => {
-    const diasAcumulados = employee.fechaIngreso ? calcularAcumulacion(employee.fechaIngreso) : 0;
-    const salarioDiario = employee.salarioBase / 30;
-    return diasAcumulados * salarioDiario;
+  // --- EXPORTACIÓN ---
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Reporte de Vacaciones - Siconfy ERP", 14, 10);
+    doc.text(`Generado: ${new Date().toLocaleDateString()}`, 14, 16);
+    
+    const tableColumn = ["Empleado", "Ingreso", "Acumulado Total", "Usado", "Saldo Actual", "Valor Monetario"];
+    const tableRows: any[] = [];
+
+    employees.forEach(emp => {
+        const acumulado = calcularProporcionalHoy(emp.fechaIngreso);
+        const usados = emp.historialVacaciones?.reduce((s, r) => s + r.diasUsados, 0) || 0;
+        const saldo = Math.max(0, acumulado - usados);
+        const valor = (emp.salarioBase / 30) * saldo;
+
+        tableRows.push([
+            emp.nombre,
+            emp.fechaIngreso,
+            acumulado.toFixed(2),
+            usados.toFixed(2),
+            saldo.toFixed(2),
+            formatCurrency(valor)
+        ]);
+    });
+
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+    });
+    doc.save("Reporte_Vacaciones.pdf");
+  };
+
+  const exportToExcel = () => {
+    const data = employees.map(emp => {
+        const acumulado = calcularProporcionalHoy(emp.fechaIngreso);
+        const usados = emp.historialVacaciones?.reduce((s, r) => s + r.diasUsados, 0) || 0;
+        const saldo = Math.max(0, acumulado - usados);
+        
+        return {
+            "Cédula": emp.cedula,
+            "Nombre": emp.nombre,
+            "Fecha Ingreso": emp.fechaIngreso,
+            "Fecha Corte": new Date().toLocaleDateString(),
+            "Días Acumulados (Total)": parseFloat(acumulado.toFixed(2)),
+            "Días Usados": parseFloat(usados.toFixed(2)),
+            "Saldo Disponible": parseFloat(saldo.toFixed(2)),
+            "Valor Monetario": (emp.salarioBase/30) * saldo
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vacaciones");
+    XLSX.writeFile(wb, "Reporte_Vacaciones.xlsx");
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Tracker de Vacaciones</h1>
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
+      
+      {/* Header y Controles */}
+      <div className="print:hidden mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-800">Control de Vacaciones</h1>
+            <p className="text-sm text-gray-500">Cálculo proporcional (Base 30 días/año)</p>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+            <button onClick={handleUpdateBalances} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm font-bold flex items-center gap-2 transition">
+                ⚡ Actualizar Saldos
+            </button>
+            <div className="flex bg-gray-200 rounded p-1 gap-1">
+                <button onClick={exportToExcel} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-bold transition">
+                   Excel
+                </button>
+                <button onClick={exportToPDF} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold transition">
+                   PDF
+                </button>
+            </div>
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold flex items-center gap-2 transition">
+              🖨️ Imprimir
+            </button>
+        </div>
+      </div>
 
-      {/* Tabla de Vacaciones */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Días de Vacaciones Acumuladas (Período Actual)</h2>
+      {/* DOCUMENTO DE REPORTE */}
+      <div className="document-print-container bg-white p-4 md:p-6 shadow-lg print:shadow-none print:p-0 rounded-lg">
+        
+        <div className="hidden print:block text-center mb-8 border-b-2 border-black pb-2">
+            <h2 className="text-2xl font-serif font-bold uppercase">Reporte General de Vacaciones</h2>
+            <p className="text-sm">Corte al: {lastUpdate.toLocaleDateString('es-NI')}</p>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left">Nombre</th>
-                <th className="px-4 py-2 text-left">Cédula</th>
-                <th className="px-4 py-2 text-left">Fecha Ingreso</th>
-                <th className="px-4 py-2 text-left">Acum. Período</th>
-                <th className="px-4 py-2 text-left">Acum. Total</th>
-                <th className="px-4 py-2 text-left">Usados</th>
-                <th className="px-4 py-2 text-left">Disponibles</th>
-                <th className="px-4 py-2 text-left">Valor Monetario</th>
-                <th className="px-4 py-2 text-left">Acciones</th>
-              </tr>
+            <table className="w-full text-sm border-collapse border border-gray-300">
+            <thead className="bg-slate-800 text-white print:bg-gray-200 print:text-black">
+                <tr>
+                <th className="border border-slate-600 p-2 text-left">EMPLEADO</th>
+                <th className="border border-slate-600 p-2 text-center">F. INGRESO</th>
+                <th className="border border-slate-600 p-2 text-center bg-blue-50/10">F. CORTE</th>
+                <th className="border border-slate-600 p-2 text-center">ACUMULADO</th>
+                <th className="border border-slate-600 p-2 text-center">USADO</th>
+                <th className="border border-slate-600 p-2 text-center bg-green-50/10 font-bold">DISPONIBLE</th>
+                <th className="border border-slate-600 p-2 text-right">VALOR C$</th>
+                <th className="border border-slate-600 p-2 text-center print:hidden">GESTIÓN</th>
+                </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => {
-                const diasAcumuladosPeriodo = emp.fechaIngreso ? calcularAcumulacion(emp.fechaIngreso) : 0;
-                const diasAcumuladosTotal = emp.fechaIngreso ? calcularAcumulacionTotal(emp.fechaIngreso) : 0;
-                const diasUsados = emp.historialVacaciones?.reduce((sum, record) => sum + record.diasUsados, 0) || 0;
-                const diasDisponibles = Math.max(0, diasAcumuladosTotal - diasUsados);
-                const valorMonetario = calcularValorVacaciones(emp);
+                {employees.map((emp) => {
+                // Cálculo en tiempo real para visualización
+                const diasAcumTotal = calcularProporcionalHoy(emp.fechaIngreso);
+                const diasUsadosTotal = emp.historialVacaciones?.reduce((s, r) => s + r.diasUsados, 0) || 0;
+                const saldo = Math.max(0, diasAcumTotal - diasUsadosTotal);
+                const salarioDiario = emp.salarioBase / 30;
+                const valorMonetario = saldo * salarioDiario;
+                
+                const isAlert = saldo > 30;
+                const rowClass = isAlert ? "bg-red-50" : "hover:bg-gray-50";
+
                 return (
-                  <tr key={emp.cedula} className="border-t">
-                    <td className="px-4 py-2">{emp.nombre}</td>
-                    <td className="px-4 py-2">{emp.cedula}</td>
-                    <td className="px-4 py-2">{emp.fechaIngreso}</td>
-                    <td className="px-4 py-2">{diasAcumuladosPeriodo.toFixed(1)} días</td>
-                    <td className="px-4 py-2">{diasAcumuladosTotal.toFixed(1)} días</td>
-                    <td className="px-4 py-2">{diasUsados.toFixed(1)} días</td>
-                    <td className="px-4 py-2 font-semibold">{diasDisponibles.toFixed(1)} días</td>
-                    <td className="px-4 py-2">{formatCurrency(valorMonetario)}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => setSelectedEmployee(emp)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-                      >
-                        Registrar Uso
-                      </button>
-                    </td>
-                  </tr>
+                    <tr key={emp.cedula} className={`border-b border-gray-300 ${rowClass}`}>
+                        <td className="p-2 border-r font-medium">
+                            <div className="text-gray-900">{emp.nombre}</div>
+                            <div className="text-xs text-gray-500 font-mono">{emp.cedula}</div>
+                        </td>
+                        <td className="p-2 border-r text-center text-xs">{emp.fechaIngreso}</td>
+                        <td className="p-2 border-r text-center text-xs text-gray-500">{new Date().toLocaleDateString()}</td>
+                        
+                        <td className="p-2 border-r text-center font-mono text-blue-700 font-bold bg-blue-50">
+                            {diasAcumTotal.toFixed(2)}
+                        </td>
+                        <td className="p-2 border-r text-center font-mono text-gray-600">
+                            {diasUsadosTotal.toFixed(2)}
+                        </td>
+                        <td className={`p-2 border-r text-center font-bold font-mono text-base ${isAlert ? 'text-red-600' : 'text-green-700 bg-green-50'}`}>
+                            {saldo.toFixed(2)}
+                        </td>
+                        <td className="p-2 border-r text-right font-mono text-gray-800">
+                            {formatCurrency(valorMonetario)}
+                        </td>
+                        <td className="p-2 text-center print:hidden">
+                            <button 
+                                onClick={() => setSelectedForUsage(emp)} 
+                                className="text-xs bg-slate-700 text-white hover:bg-slate-800 px-3 py-1 rounded shadow transition"
+                            >
+                                Registrar
+                            </button>
+                        </td>
+                    </tr>
                 );
-              })}
+                })}
             </tbody>
-          </table>
+            </table>
         </div>
-        {employees.length === 0 && (
-          <p className="text-center text-gray-500 mt-4">No hay empleados registrados</p>
-        )}
+        
+        {/* Pie de página reporte */}
+        <div className="mt-4 text-xs text-gray-500 italic print:block hidden">
+            * Cálculo basado en 30 días anuales (2.5 por mes). La columna "Acumulado" incluye la parte proporcional hasta el día de hoy.
+        </div>
       </div>
 
-      {/* Modal para registrar uso de vacaciones */}
-      {selectedEmployee && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-md max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Registrar Uso de Vacaciones</h3>
-            <p className="mb-2"><strong>Empleado:</strong> {selectedEmployee.nombre}</p>
-            <p className="mb-4"><strong>Días Disponibles:</strong> {selectedEmployee.diasVacacionesAcumulados.toFixed(1)}</p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Días a Usar</label>
-              <input
-                type="number"
-                value={diasUsados}
-                onChange={(e) => setDiasUsados(parseFloat(e.target.value) || 0)}
-                className="w-full p-2 border rounded"
-                min="0"
-                max={selectedEmployee.diasVacacionesAcumulados}
-                step="0.5"
-              />
+      {/* Modal Simple */}
+      {selectedForUsage && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 print:hidden">
+            <div className="bg-white p-6 rounded-lg shadow-2xl w-96 border-t-4 border-blue-600 animate-in fade-in zoom-in duration-200">
+                <h3 className="font-bold text-lg mb-4 text-gray-800">Registrar Vacaciones</h3>
+                <p className="text-sm text-gray-600 mb-4">Empleado: <span className="font-bold">{selectedForUsage.nombre}</span></p>
+                
+                <label className="block text-xs font-bold text-gray-500 mb-1">Días a tomar</label>
+                <input 
+                    type="number" 
+                    className="w-full border rounded p-2 mb-3 focus:ring-2 focus:ring-blue-500 outline-none" 
+                    value={diasUsados} 
+                    onChange={e=>setDiasUsados(e.target.value)}
+                    placeholder="0"
+                />
+                
+                <label className="block text-xs font-bold text-gray-500 mb-1">Motivo / Notas</label>
+                <input 
+                    type="text" 
+                    className="w-full border rounded p-2 mb-6 focus:ring-2 focus:ring-blue-500 outline-none" 
+                    placeholder="Ej: Vacaciones anuales" 
+                    value={motivo} 
+                    onChange={e=>setMotivo(e.target.value)} 
+                />
+                
+                <div className="flex justify-end gap-3">
+                    <button onClick={() => {
+                        setSelectedForUsage(null);
+                        setDiasUsados('');
+                    }} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-medium transition">Cancelar</button>
+                    <button onClick={handleRegisterVacation} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow transition">Guardar</button>
+                </div>
             </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Motivo</label>
-              <input
-                type="text"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Ej: Vacaciones anuales"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  setSelectedEmployee(null);
-                  setDiasUsados(0);
-                  setMotivo('');
-                }}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleRegisterVacation}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Registrar
-              </button>
-            </div>
-          </div>
         </div>
       )}
-
-      {/* Botón de Imprimir */}
-      <div className="text-center">
-        <button
-          onClick={() => window.print()}
-          className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 print:hidden"
-        >
-          🖨️ Imprimir Memorándum
-        </button>
-      </div>
-
-      {/* Layout de Impresión - Memorándum */}
-      <div className="hidden print:block p-8 bg-white text-black font-serif leading-relaxed">
-        <div className="text-center mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-2xl font-bold uppercase">Memorándum de Vacaciones</h1>
-          <p className="text-sm">Fecha: {new Date().toLocaleDateString('es-NI')}</p>
-        </div>
-
-        <div className="mb-6">
-          <p><strong>De:</strong> Departamento de Recursos Humanos</p>
-          <p><strong>Para:</strong> {selectedEmployee ? selectedEmployee.nombre : 'Empleado'}</p>
-          <p><strong>Asunto:</strong> Solicitud de Vacaciones</p>
-          <p><strong>Fecha:</strong> {new Date().toLocaleDateString('es-NI')}</p>
-        </div>
-
-        <div className="mb-6">
-          <p>Por medio del presente, se solicita la aprobación de {diasUsados} días de vacaciones correspondientes al período actual.</p>
-        </div>
-
-        {selectedEmployee && (
-          <div className="mb-6">
-            <p><strong>Datos del Empleado:</strong></p>
-            <ul className="ml-6">
-              <li>Nombre: {selectedEmployee.nombre}</li>
-              <li>Cédula: {selectedEmployee.cedula}</li>
-              <li>Fecha de Ingreso: {selectedEmployee.fechaIngreso}</li>
-              <li>Días Disponibles: {(() => {
-                const diasAcumuladosTotal = selectedEmployee.fechaIngreso ? calcularAcumulacionTotal(selectedEmployee.fechaIngreso) : 0;
-                const diasUsadosHist = selectedEmployee.historialVacaciones?.reduce((sum, record) => sum + record.diasUsados, 0) || 0;
-                return Math.max(0, diasAcumuladosTotal - diasUsadosHist);
-              })().toFixed(1)} días</li>
-            </ul>
-          </div>
-        )}
-
-        <div className="mb-6">
-          <p><strong>Período de Vacaciones Solicitado:</strong></p>
-          <p>Desde: ____________________ Hasta: ____________________</p>
-          <p>Motivo: {motivo || 'Vacaciones anuales'}</p>
-        </div>
-
-        <div className="mb-6">
-          <p>Se adjunta el historial de vacaciones del empleado para su revisión.</p>
-          <p>Las vacaciones se acumulan a razón de 2.5 días por mes laborado según la legislación laboral nicaragüense.</p>
-        </div>
-
-        <div className="flex justify-between mt-12">
-          <div className="text-center">
-            <div className="border-t border-black w-48 pt-2">
-              <p className="font-bold">Solicitante</p>
-              <p className="text-sm">{selectedEmployee?.nombre}</p>
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="border-t border-black w-48 pt-2">
-              <p className="font-bold">Aprobado por</p>
-              <p className="text-sm">Recursos Humanos</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center text-xs text-gray-500 mt-8">
-          <p>Siconfy ERP © 2025. Sistema de Gestión Empresarial</p>
-        </div>
-      </div>
     </div>
   );
 };

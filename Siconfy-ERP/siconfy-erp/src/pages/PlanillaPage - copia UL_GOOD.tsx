@@ -8,19 +8,6 @@ import type { Employee } from '../types';
 import * as XLSX from 'xlsx';
 import { saveCalculation } from '../utils/historialService';
 
-interface PlanillaInput {
-  comisiones?: number;
-  incentivos?: number;
-  viaticos?: number;
-  diasVacaciones?: number;
-  horasExtras?: number;
-  ingresosNoDeducibles?: number;
-  optica?: number;
-  embargoAlimenticio?: number;
-  embargoJudicial?: number;
-  otrosDeducciones?: number;
-}
-
 export const PlanillaPage = () => {
    const [empleados, setEmpleados] = useState<Employee[]>([]);
    const [inputs, setInputs] = useState<Record<number, any>>({});
@@ -33,9 +20,6 @@ export const PlanillaPage = () => {
 
    // Referencia para manejar el foco de todos los inputs de la tabla
    const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
-
-   // Referencia para el iframe de impresión
-   const printIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const allEmps = EmployeeService.getAll();
@@ -117,111 +101,6 @@ export const PlanillaPage = () => {
     });
   }, [empleados, inputs, cantidadEmpleados, frecuenciaCalculo]);
 
-  const printStub = () => {
-    const iframe = printIframeRef.current;
-    if (!iframe) return;
-    const doc = iframe.contentDocument;
-    if (!doc) return;
-    const stubElement = document.getElementById('printable-stub-area');
-    if (!stubElement) return;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Colilla de Pago</title>
-        <style>
-          @media print {
-            @page { size: A4; margin: 10mm; }
-            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
-          }
-          .bg-white { background-color: white; }
-          .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-          .min-h-[20cm] { min-height: 20cm; }
-          .p-8 { padding: 2rem; }
-          .mx-auto { margin-left: auto; margin-right: auto; }
-          .max-w-[21cm] { max-width: 21cm; }
-          .print\\:shadow-none { box-shadow: none; }
-          .print\\:m-0 { margin: 0; }
-          .print\\:w-full { width: 100%; }
-          .print\\:p-6 { padding: 1.5rem; }
-          .border { border: 1px solid #e5e7eb; }
-          .border-gray-200 { border-color: #e5e7eb; }
-          .text-center { text-align: center; }
-          .mb-6 { margin-bottom: 1.5rem; }
-          .border-b-2 { border-bottom-width: 2px; }
-          .border-gray-800 { border-color: #1f2937; }
-          .pb-2 { padding-bottom: 0.5rem; }
-          .text-2xl { font-size: 1.5rem; line-height: 2rem; }
-          .font-bold { font-weight: 700; }
-          .uppercase { text-transform: uppercase; }
-          .tracking-widest { letter-spacing: 0.25em; }
-          .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-          .font-semibold { font-weight: 600; }
-          .text-gray-600 { color: #4b5563; }
-          .text-xs { font-size: 0.75rem; line-height: 1rem; }
-          .text-gray-500 { color: #6b7280; }
-          .mt-1 { margin-top: 0.25rem; }
-          .bg-gray-50 { background-color: #f9fafb; }
-          .p-4 { padding: 1rem; }
-          .rounded-lg { border-radius: 0.5rem; }
-          .grid { display: grid; }
-          .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .gap-y-2 { row-gap: 0.5rem; }
-          .gap-x-8 { column-gap: 2rem; }
-          .flex { display: flex; }
-          .justify-between { justify-content: space-between; }
-          .border-b { border-bottom-width: 1px; }
-          .border-dotted { border-style: dotted; }
-          .pb-1 { padding-bottom: 0.25rem; }
-          .font-medium { font-weight: 500; }
-          .col-span-2 { grid-column: span 2 / span 2; }
-          .pt-1 { padding-top: 0.25rem; }
-          .gap-6 { gap: 1.5rem; }
-          .bg-emerald-100 { background-color: #d1fae5; }
-          .text-emerald-800 { color: #065f46; }
-          .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-          .border-emerald-200 { border-color: #a7f3d0; }
-          .w-full { width: 100%; }
-          .divide-y > * + * { border-top-width: 1px; border-bottom-width: 1px; }
-          .divide-gray-100 > * + * { border-color: #f3f4f6; }
-          .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-          .text-right { text-align: right; }
-          .border-t-2 { border-top-width: 2px; }
-          .border-gray-300 { border-color: #d1d5db; }
-          .bg-red-100 { background-color: #fee2e2; }
-          .text-red-800 { color: #991b1b; }
-          .border-red-200 { border-color: #fecaca; }
-          .text-gray-600 { color: #4b5563; }
-          .italic { font-style: italic; }
-          .border-2 { border-width: 2px; }
-          .rounded { border-radius: 0.25rem; }
-          .items-center { align-items: center; }
-          .mb-12 { margin-bottom: 3rem; }
-          .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-          .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-          .px-4 { padding-left: 1rem; padding-right: 1rem; }
-          .mt-8 { margin-top: 2rem; }
-          .w-5\\/12 { width: 41.666667%; }
-          .border-t { border-top-width: 1px; }
-          .border-black { border-color: black; }
-          .pt-2 { padding-top: 0.5rem; }
-          .mb-8 { margin-bottom: 2rem; }
-          .text-\\[10px\\] { font-size: 10px; }
-          .font-mono { font-family: ui-monospace, SFMono-Regular, monospace; }
-        </style>
-      </head>
-      <body>
-        ${stubElement.innerHTML}
-      </body>
-      </html>
-    `);
-    doc.close();
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-  };
-
   const handleExportExcel = () => {
     const dataToExport = planillaCalculada.map(row => ({
       "#": row.id, "Nombre": row.nombre, "INSS": row.noInss, "Salario": row.salarioBasePeriodo,
@@ -251,7 +130,7 @@ export const PlanillaPage = () => {
   // HELPER MEJORADO: Input "inteligente" (Formato al salir, crudo al editar)
   const renderInputCell = (empId: number, field: string, globalIndex: number, width: string = "w-20", defaultVal: number = 0) => (
     <input
-      ref={el => { inputsRef.current[globalIndex] = el; }}
+      ref={el => inputsRef.current[globalIndex] = el} 
       type="text" // Usamos text para permitir caracteres de formato (,)
       className={`${width} p-1 text-right border rounded focus:ring-2 focus:ring-blue-500 outline-none text-[11px] h-7 bg-blue-50/30 placeholder-gray-400`}
       placeholder={defaultVal > 0 ? formatNumberForDisplay(defaultVal) : "0.00"}
@@ -279,7 +158,7 @@ export const PlanillaPage = () => {
   let inputCounter = 0;
 
   return (
-    <div className={`p-4 bg-gray-50 min-h-screen ${isPayStubModalOpen ? 'print:hidden' : ''}`}>
+    <div className="p-4 bg-gray-50 min-h-screen">
       <style>{`
         @media print {
             @page { size: landscape; margin: 5mm; }
@@ -292,8 +171,6 @@ export const PlanillaPage = () => {
             thead { display: table-header-group; }
             input { border: none !important; background: transparent !important; padding: 0 !important; text-align: right; }
             input::placeholder { color: transparent; }
-            .no-print { display: none !important; }
-            .printing { position: static !important; }
         }
       `}</style>
 
@@ -422,7 +299,7 @@ export const PlanillaPage = () => {
 
       {/* Modal Colilla de Pago MEJORADO */}
       {isPayStubModalOpen && selectedEmployeeForStub && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:bg-transparent">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print">
           <div className="bg-white w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden rounded shadow-2xl print:shadow-none print:h-auto print:w-full">
             <div className="p-4 border-b flex justify-between items-center no-print">
               <h3 className="text-lg font-bold">Colilla de Pago</h3>
@@ -444,7 +321,7 @@ export const PlanillaPage = () => {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6 print:p-0">
-              <div id="printable-stub-area" className="bg-white shadow-lg min-h-[20cm] p-8 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full print:p-6 border border-gray-200">
+              <div id="pay-stub-content" className="bg-white shadow-lg min-h-[20cm] p-8 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full print:p-6 hidden print:block border border-gray-200">
                 
                 {/* Encabezado Corporativo Estándar */}
                 <div className="text-center mb-6 border-b-2 border-gray-800 pb-2">
@@ -571,14 +448,11 @@ export const PlanillaPage = () => {
             </div>
             <div className="p-4 border-t no-print bg-gray-50 flex justify-end gap-2">
               <button onClick={() => setIsPayStubModalOpen(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded">Cerrar</button>
-              <button onClick={printStub} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700">🖨️ Imprimir Colilla</button>
+              <button onClick={() => { setIsPayStubModalOpen(false); setTimeout(() => window.print(), 300); }} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700">🖨️ Imprimir Colilla</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Hidden iframe for printing pay stub */}
-      <iframe ref={printIframeRef} style={{ display: 'none' }}></iframe>
     </div>
   );
 };

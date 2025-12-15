@@ -1,13 +1,6 @@
 // src/utils/nomina.ts
+import { TASA_INSS, TECHO_SALARIAL, TASAS_PATRONALES } from './constants';
 
-// --- CONSTANTES GLOBALES ---
-// Corrección: Definimos las tasas patronales que faltaban para evitar el ReferenceError
-export const TASA_INSS_LABORAL = 0.07;
-export const TASA_INATEC = 0.02;
-export const TASA_PATRONAL_PYME = 0.215; // 21.5% para empresas con menos de 50 empleados
-export const TASA_PATRONAL_GRAN = 0.225; // 22.5% para empresas con 50 o más empleados
-
-// --- INTERFACES ---
 export interface DetalleIR {
     salarioAnual: number;
     sobreExceso: number;
@@ -49,25 +42,10 @@ export interface ResultadoNomina {
     inatec: number;
     costoTotalEmpleador: number;
     tasaPatronalAplicada: number;
-    provisionAguinaldo: number;
+    provisionAguinaldo: number; // NUEVO CAMPO
 }
 
-export interface OpcionesNomina {
-    horasExtras?: number;
-    comisiones?: number;
-    incentivos?: number;
-    viaticos?: number;
-    diasVacaciones?: number;
-    ingresosNoDeducibles?: number;
-    optica?: number;
-    embargoAlimenticio?: number;
-    embargoJudicial?: number;
-    otrosDeducciones?: number;
-    frecuencia?: 'mensual' | 'quincenal' | 'semanal';
-    cantidadEmpleados?: number;
-}
-
-// --- FUNCIONES ---
+const TASA_INATEC = 0.02;
 
 export function calcularIRAnualDetallado(salarioAnual: number): DetalleIR {
     let impuestoBase = 0;
@@ -96,6 +74,21 @@ export function calcularIRAnualDetallado(salarioAnual: number): DetalleIR {
         irAnual,
         irMensual: irAnual / 12
     };
+}
+
+export interface OpcionesNomina {
+    horasExtras?: number;
+    comisiones?: number;
+    incentivos?: number;
+    viaticos?: number;
+    diasVacaciones?: number;
+    ingresosNoDeducibles?: number;
+    optica?: number;
+    embargoAlimenticio?: number;
+    embargoJudicial?: number;
+    otrosDeducciones?: number;
+    frecuencia?: 'mensual' | 'quincenal' | 'semanal';
+    cantidadEmpleados?: number;
 }
 
 export const calcularNominaMensual = (
@@ -130,19 +123,14 @@ export const calcularNominaMensual = (
 
     // 2. INSS Laboral
     const baseInss = totalIngresos - viaticos - ingresosNoDeducibles;
-    const inssLaboral = baseInss * TASA_INSS_LABORAL;
+    const inssLaboral = Math.min(baseInss, TECHO_SALARIAL) * TASA_INSS;
 
     // 3. IR Laboral
     const baseIR = totalIngresos - viaticos - ingresosNoDeducibles - inssLaboral;
     let factorProyeccion = 12;
     if (frecuencia === 'quincenal') factorProyeccion = 24;
     if (frecuencia === 'semanal') factorProyeccion = 52;
-    
-    // Proyección anual correcta
-    const salarioAnualProyectado = baseIR * factorProyeccion;
-    const dataIR = calcularIRAnualDetallado(salarioAnualProyectado);
-    
-    // IR del periodo
+    const dataIR = calcularIRAnualDetallado(baseIR * factorProyeccion);
     const ir = dataIR.irMensual * (12 / factorProyeccion);
 
     // 4. Totales
@@ -150,12 +138,12 @@ export const calcularNominaMensual = (
     const salarioNeto = totalIngresos - totalDeducciones;
 
     // 5. Patronales
-    // Aquí es donde ocurría el error. Ahora las constantes existen y funcionará.
     const tasaPatronalReal = (cantidadEmpleados < 50) ? TASA_PATRONAL_PYME : TASA_PATRONAL_GRAN;
     const inssPatronal = baseInss * tasaPatronalReal;
     const inatec = baseInss * TASA_INATEC;
 
-    // 6. Provisión Aguinaldo
+    // 6. Provisión Aguinaldo (1/12 de los ingresos computables)
+    // El aguinaldo se calcula sobre todo salario ordinario y extraordinario (comisiones, HE). No viáticos.
     const baseAguinaldo = totalIngresos - viaticos - ingresosNoDeducibles;
     const provisionAguinaldo = baseAguinaldo * 0.083333333;
 
@@ -184,6 +172,6 @@ export const calcularNominaMensual = (
         inatec,
         costoTotalEmpleador: totalIngresos + inssPatronal + inatec + provisionAguinaldo,
         tasaPatronalAplicada: tasaPatronalReal,
-        provisionAguinaldo
+        provisionAguinaldo // Nuevo
     };
 };

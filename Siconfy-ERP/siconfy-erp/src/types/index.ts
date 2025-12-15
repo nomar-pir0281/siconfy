@@ -1,39 +1,35 @@
-export interface Employee {
-  nombre: string;
-  cedula: string;
-  salarioBase: number;
-  fechaIngreso: string;
-  comisiones: number;
-  incentivos: number;
-  horasExtras: number;
-  deducciones: number;
-  frecuencia: 'mensual' | 'quincenal' | 'semanal';
-  diasVacacionesAcumulados: number;
-  historialVacaciones: VacationRecord[];
-}
+// src/types/index.ts
 
 export interface VacationRecord {
-  fecha: string;
-  diasUsados: number;
-  motivo: string;
-  saldoAnterior: number;
-  saldoPosterior: number;
+    id: number;
+    fecha: string;
+    diasUsados: number;
+    motivo: string;
 }
+  
+export interface Employee {
+    id: number;
+    nombre: string;
+    cedula: string;
+    noInss?: string; 
+    cargo: string;
+    salarioBase: number;
+    
+    // --- NUEVOS CAMPOS FIJOS (Para Tab Empleados) ---
+    comisiones?: number;
+    incentivos?: number;
+    viaticos?: number;
+    diasVacaciones?: number;
+    horasExtras?: number; // Cantidad de horas fijas
+    deducciones?: number; // Deducciones fijas del empleado
+    // ------------------------------------------------
 
-export interface PayrollRecord {
-  nombre: string;
-  cedula: string;
-  salarioBase: number;
-  montoHorasExtras: number;
-  comisiones: number;
-  incentivos: number;
-  totalIngresos: number;
-  inssLaboral: number;
-  ir: number;
-  deducciones: number;
-  totalDeducciones: number;
-  salarioNeto: number;
-  inssPatronal: number;
-  inatec: number;
-  costoTotalEmpleador: number;
+    fechaIngreso: string; 
+    estado: 'Activo' | 'Inactivo';
+    frecuenciaPago: 'Mensual' | 'Quincenal' | 'Semanal';
+    
+    contrato?: string;
+    moneda?: string;
+    diasVacacionesAcumulados: number;
+    historialVacaciones: VacationRecord[];
 }

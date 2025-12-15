@@ -8,19 +8,6 @@ import type { Employee } from '../types';
 import * as XLSX from 'xlsx';
 import { saveCalculation } from '../utils/historialService';
 
-interface PlanillaInput {
-  comisiones?: number;
-  incentivos?: number;
-  viaticos?: number;
-  diasVacaciones?: number;
-  horasExtras?: number;
-  ingresosNoDeducibles?: number;
-  optica?: number;
-  embargoAlimenticio?: number;
-  embargoJudicial?: number;
-  otrosDeducciones?: number;
-}
-
 export const PlanillaPage = () => {
    const [empleados, setEmpleados] = useState<Employee[]>([]);
    const [inputs, setInputs] = useState<Record<number, any>>({});
@@ -33,9 +20,6 @@ export const PlanillaPage = () => {
 
    // Referencia para manejar el foco de todos los inputs de la tabla
    const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
-
-   // Referencia para el iframe de impresión
-   const printIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const allEmps = EmployeeService.getAll();
@@ -110,124 +94,17 @@ export const PlanillaPage = () => {
       
       return {
           ...emp, ...calculo, salarioBasePeriodo: salarioBaseProcesar, totalProvisiones,
-          used: { comisiones, incentivos, viaticos, diasVacaciones, horasExtras },
-          // Guardamos el desglose de otras deducciones para la colilla
-          detalleOtrasDeducciones: (empInputs.optica || 0) + (empInputs.embargoAlimenticio || 0) + (empInputs.embargoJudicial || 0) + ((empInputs.otrosDeducciones || 0) + (emp.deducciones || 0))
+          used: { comisiones, incentivos, viaticos, diasVacaciones, horasExtras }
       };
     });
   }, [empleados, inputs, cantidadEmpleados, frecuenciaCalculo]);
-
-  const printStub = () => {
-    const iframe = printIframeRef.current;
-    if (!iframe) return;
-    const doc = iframe.contentDocument;
-    if (!doc) return;
-    const stubElement = document.getElementById('printable-stub-area');
-    if (!stubElement) return;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Colilla de Pago</title>
-        <style>
-          @media print {
-            @page { size: A4; margin: 10mm; }
-            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
-          }
-          .bg-white { background-color: white; }
-          .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-          .min-h-[20cm] { min-height: 20cm; }
-          .p-8 { padding: 2rem; }
-          .mx-auto { margin-left: auto; margin-right: auto; }
-          .max-w-[21cm] { max-width: 21cm; }
-          .print\\:shadow-none { box-shadow: none; }
-          .print\\:m-0 { margin: 0; }
-          .print\\:w-full { width: 100%; }
-          .print\\:p-6 { padding: 1.5rem; }
-          .border { border: 1px solid #e5e7eb; }
-          .border-gray-200 { border-color: #e5e7eb; }
-          .text-center { text-align: center; }
-          .mb-6 { margin-bottom: 1.5rem; }
-          .border-b-2 { border-bottom-width: 2px; }
-          .border-gray-800 { border-color: #1f2937; }
-          .pb-2 { padding-bottom: 0.5rem; }
-          .text-2xl { font-size: 1.5rem; line-height: 2rem; }
-          .font-bold { font-weight: 700; }
-          .uppercase { text-transform: uppercase; }
-          .tracking-widest { letter-spacing: 0.25em; }
-          .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-          .font-semibold { font-weight: 600; }
-          .text-gray-600 { color: #4b5563; }
-          .text-xs { font-size: 0.75rem; line-height: 1rem; }
-          .text-gray-500 { color: #6b7280; }
-          .mt-1 { margin-top: 0.25rem; }
-          .bg-gray-50 { background-color: #f9fafb; }
-          .p-4 { padding: 1rem; }
-          .rounded-lg { border-radius: 0.5rem; }
-          .grid { display: grid; }
-          .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .gap-y-2 { row-gap: 0.5rem; }
-          .gap-x-8 { column-gap: 2rem; }
-          .flex { display: flex; }
-          .justify-between { justify-content: space-between; }
-          .border-b { border-bottom-width: 1px; }
-          .border-dotted { border-style: dotted; }
-          .pb-1 { padding-bottom: 0.25rem; }
-          .font-medium { font-weight: 500; }
-          .col-span-2 { grid-column: span 2 / span 2; }
-          .pt-1 { padding-top: 0.25rem; }
-          .gap-6 { gap: 1.5rem; }
-          .bg-emerald-100 { background-color: #d1fae5; }
-          .text-emerald-800 { color: #065f46; }
-          .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-          .border-emerald-200 { border-color: #a7f3d0; }
-          .w-full { width: 100%; }
-          .divide-y > * + * { border-top-width: 1px; border-bottom-width: 1px; }
-          .divide-gray-100 > * + * { border-color: #f3f4f6; }
-          .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-          .text-right { text-align: right; }
-          .border-t-2 { border-top-width: 2px; }
-          .border-gray-300 { border-color: #d1d5db; }
-          .bg-red-100 { background-color: #fee2e2; }
-          .text-red-800 { color: #991b1b; }
-          .border-red-200 { border-color: #fecaca; }
-          .text-gray-600 { color: #4b5563; }
-          .italic { font-style: italic; }
-          .border-2 { border-width: 2px; }
-          .rounded { border-radius: 0.25rem; }
-          .items-center { align-items: center; }
-          .mb-12 { margin-bottom: 3rem; }
-          .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-          .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-          .px-4 { padding-left: 1rem; padding-right: 1rem; }
-          .mt-8 { margin-top: 2rem; }
-          .w-5\\/12 { width: 41.666667%; }
-          .border-t { border-top-width: 1px; }
-          .border-black { border-color: black; }
-          .pt-2 { padding-top: 0.5rem; }
-          .mb-8 { margin-bottom: 2rem; }
-          .text-\\[10px\\] { font-size: 10px; }
-          .font-mono { font-family: ui-monospace, SFMono-Regular, monospace; }
-        </style>
-      </head>
-      <body>
-        ${stubElement.innerHTML}
-      </body>
-      </html>
-    `);
-    doc.close();
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-  };
 
   const handleExportExcel = () => {
     const dataToExport = planillaCalculada.map(row => ({
       "#": row.id, "Nombre": row.nombre, "INSS": row.noInss, "Salario": row.salarioBasePeriodo,
       "Comis.": row.comisiones, "Incent.": row.incentivos, "Viát.": row.viaticos, "Vac.": row.montoVacaciones, "HE": row.montoHorasExtras,
       "Otros": row.ingresosNoDeducibles, "Total Ing.": row.totalIngresos, "INSS Lab": row.inssLaboral, "IR": row.ir,
-      "D.Var": row.detalleOtrasDeducciones, "Total Ded.": row.totalDeducciones,
+      "D.Var": row.optica + row.embargoAlimenticio + row.embargoJudicial + row.otrosDeducciones, "Total Ded.": row.totalDeducciones,
       "Neto": row.salarioNeto, "Patronal": row.inssPatronal, "INATEC": row.inatec, "P. Agui.": row.provisionAguinaldo, "P. Total": row.totalProvisiones
     }));
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -251,7 +128,7 @@ export const PlanillaPage = () => {
   // HELPER MEJORADO: Input "inteligente" (Formato al salir, crudo al editar)
   const renderInputCell = (empId: number, field: string, globalIndex: number, width: string = "w-20", defaultVal: number = 0) => (
     <input
-      ref={el => { inputsRef.current[globalIndex] = el; }}
+      ref={el => inputsRef.current[globalIndex] = el} 
       type="text" // Usamos text para permitir caracteres de formato (,)
       className={`${width} p-1 text-right border rounded focus:ring-2 focus:ring-blue-500 outline-none text-[11px] h-7 bg-blue-50/30 placeholder-gray-400`}
       placeholder={defaultVal > 0 ? formatNumberForDisplay(defaultVal) : "0.00"}
@@ -279,7 +156,7 @@ export const PlanillaPage = () => {
   let inputCounter = 0;
 
   return (
-    <div className={`p-4 bg-gray-50 min-h-screen ${isPayStubModalOpen ? 'print:hidden' : ''}`}>
+    <div className="p-4 bg-gray-50 min-h-screen">
       <style>{`
         @media print {
             @page { size: landscape; margin: 5mm; }
@@ -292,8 +169,6 @@ export const PlanillaPage = () => {
             thead { display: table-header-group; }
             input { border: none !important; background: transparent !important; padding: 0 !important; text-align: right; }
             input::placeholder { color: transparent; }
-            .no-print { display: none !important; }
-            .printing { position: static !important; }
         }
       `}</style>
 
@@ -402,7 +277,7 @@ export const PlanillaPage = () => {
                 
                 {/* 7. Otras Deducciones (D.Var) */}
                 <td className="p-1 border-r print:hidden text-center">{renderInputCell(row.id, 'otrosDeducciones', inputCounter++, "w-14", empInputs.otrosDeducciones || 0)}</td>
-                <td className="hidden print:table-cell text-right">{formatCurrencyForTable(row.detalleOtrasDeducciones)}</td>
+                <td className="hidden print:table-cell text-right">{formatCurrencyForTable(row.optica + row.embargoAlimenticio + row.embargoJudicial + row.otrosDeducciones)}</td>
                 
                 {/* TOTALES FINALES */}
                 <td className="p-2 border-r font-bold text-right text-red-700 bg-red-50 print:bg-transparent print:text-black">{formatCurrencyForTable(row.totalDeducciones)}</td>
@@ -420,9 +295,9 @@ export const PlanillaPage = () => {
         </table>
       </div>
 
-      {/* Modal Colilla de Pago MEJORADO */}
+      {/* Modal Colilla de Pago */}
       {isPayStubModalOpen && selectedEmployeeForStub && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:bg-transparent">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print">
           <div className="bg-white w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden rounded shadow-2xl print:shadow-none print:h-auto print:w-full">
             <div className="p-4 border-b flex justify-between items-center no-print">
               <h3 className="text-lg font-bold">Colilla de Pago</h3>
@@ -444,141 +319,94 @@ export const PlanillaPage = () => {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6 print:p-0">
-              <div id="printable-stub-area" className="bg-white shadow-lg min-h-[20cm] p-8 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full print:p-6 border border-gray-200">
-                
-                {/* Encabezado Corporativo Estándar */}
-                <div className="text-center mb-6 border-b-2 border-gray-800 pb-2">
-                  <h1 className="text-2xl font-bold uppercase tracking-widest">{cantidadEmpleados > 50 ? 'GRAN EMPRESA S.A.' : 'MI PYME S.A.'}</h1>
-                  <h2 className="text-sm font-semibold text-gray-600">COMPROBANTE DE PAGO DE NÓMINA</h2>
-                  <p className="text-xs text-gray-500 mt-1">Período: {frecuenciaCalculo} | Fecha Emisión: {new Date().toLocaleDateString('es-ES')}</p>
+              <div id="pay-stub-content" className="bg-white shadow-lg min-h-[27cm] p-8 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full print:p-6 hidden print:block">
+                <div className="text-center mb-6">
+                  <h1 className="text-2xl font-bold">COLILLA DE PAGO</h1>
+                  <p className="text-sm">Período: {frecuenciaCalculo} - {new Date().toLocaleDateString('es-ES')}</p>
                 </div>
-
-                {/* Datos del Empleado */}
-                <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-sm">
-                        <div className="flex justify-between border-b border-gray-200 border-dotted pb-1">
-                            <span className="font-bold text-gray-600">Empleado:</span>
-                            <span className="font-medium">{selectedEmployeeForStub.nombre}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-gray-200 border-dotted pb-1">
-                            <span className="font-bold text-gray-600">Cargo:</span>
-                            <span className="font-medium">{selectedEmployeeForStub.cargo || 'General'}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-gray-200 border-dotted pb-1">
-                            <span className="font-bold text-gray-600">INSS:</span>
-                            <span className="font-medium font-mono">{selectedEmployeeForStub.noInss || '---'}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-gray-200 border-dotted pb-1">
-                            <span className="font-bold text-gray-600">Cédula:</span>
-                            <span className="font-medium font-mono">{selectedEmployeeForStub.cedula || '---'}</span>
-                        </div>
-                        <div className="flex justify-between col-span-2 pt-1">
-                            <span className="font-bold text-gray-600">Salario Base Mensual:</span>
-                            <span className="font-medium">{formatCurrency(selectedEmployeeForStub.salarioBase)}</span>
-                        </div>
-                    </div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <p><strong>Empleado:</strong> {selectedEmployeeForStub.nombre}</p>
+                    <p><strong>Cédula:</strong> {selectedEmployeeForStub.cedula}</p>
+                    <p><strong>INSS:</strong> {selectedEmployeeForStub.noInss || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p><strong>Cargo:</strong> {selectedEmployeeForStub.cargo}</p>
+                    <p><strong>Salario Base:</strong> {formatCurrency(selectedEmployeeForStub.salarioBasePeriodo)}</p>
+                    <p><strong>Frecuencia:</strong> {frecuenciaCalculo}</p>
+                  </div>
                 </div>
-
-                {/* Grid de Conceptos (Ingresos vs Deducciones) */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                    {/* Columna Ingresos */}
-                    <div>
-                        <div className="bg-emerald-100 text-emerald-800 font-bold text-center py-1 text-xs uppercase mb-2 border border-emerald-200">Ingresos</div>
-                        <table className="w-full text-sm">
-                            <tbody className="divide-y divide-gray-100">
-                                <tr>
-                                    <td className="py-1">Salario Básico</td>
-                                    <td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.salarioBasePeriodo)}</td>
-                                </tr>
-                                {selectedEmployeeForStub.comisiones > 0 && (
-                                    <tr><td className="py-1">Comisiones</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.comisiones)}</td></tr>
-                                )}
-                                {selectedEmployeeForStub.incentivos > 0 && (
-                                    <tr><td className="py-1">Incentivos</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.incentivos)}</td></tr>
-                                )}
-                                {selectedEmployeeForStub.viaticos > 0 && (
-                                    <tr><td className="py-1">Viáticos</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.viaticos)}</td></tr>
-                                )}
-                                {selectedEmployeeForStub.montoVacaciones > 0 && (
-                                    <tr><td className="py-1">Vacaciones</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.montoVacaciones)}</td></tr>
-                                )}
-                                {selectedEmployeeForStub.montoHorasExtras > 0 && (
-                                    <tr><td className="py-1">Horas Extras</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.montoHorasExtras)}</td></tr>
-                                )}
-                                {selectedEmployeeForStub.ingresosNoDeducibles > 0 && (
-                                    <tr><td className="py-1">Otros Ingresos</td><td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.ingresosNoDeducibles)}</td></tr>
-                                )}
-                            </tbody>
-                            <tfoot className="border-t-2 border-gray-300">
-                                <tr>
-                                    <td className="py-2 font-bold">TOTAL DEVENGADO</td>
-                                    <td className="py-2 font-bold text-right">{formatCurrency(selectedEmployeeForStub.totalIngresos)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    {/* Columna Deducciones */}
-                    <div>
-                        <div className="bg-red-100 text-red-800 font-bold text-center py-1 text-xs uppercase mb-2 border border-red-200">Deducciones</div>
-                        <table className="w-full text-sm">
-                            <tbody className="divide-y divide-gray-100">
-                                <tr>
-                                    <td className="py-1">INSS Laboral</td>
-                                    <td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.inssLaboral)}</td>
-                                </tr>
-                                <tr>
-                                    <td className="py-1">IR (Rentas del Trabajo)</td>
-                                    <td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.ir)}</td>
-                                </tr>
-                                {/* Desglose de Otras Deducciones para cuadrar el Total */}
-                                {selectedEmployeeForStub.detalleOtrasDeducciones > 0 && (
-                                    <tr>
-                                        <td className="py-1 text-gray-600 italic">Otras (Préstamos/Emb.)</td>
-                                        <td className="text-right py-1">{formatCurrency(selectedEmployeeForStub.detalleOtrasDeducciones)}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                            <tfoot className="border-t-2 border-gray-300">
-                                <tr>
-                                    <td className="py-2 font-bold">TOTAL DEDUCCIONES</td>
-                                    <td className="py-2 font-bold text-right">{formatCurrency(selectedEmployeeForStub.totalDeducciones)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                <table className="w-full border-collapse border border-gray-300 text-sm mb-6">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-left">Descripción</th>
+                      <th className="border border-gray-300 p-2 text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Salario Base</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.salarioBase)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Comisiones</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.comisiones)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Incentivos</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.incentivos)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Viáticos</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.viaticos)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Vacaciones</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.montoVacaciones)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">Horas Extras</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.montoHorasExtras)}</td>
+                    </tr>
+                    <tr className="font-bold">
+                      <td className="border border-gray-300 p-2">Total Ingresos</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.totalIngresos)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <table className="w-full border-collapse border border-gray-300 text-sm mb-6">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-left">Deducciones</th>
+                      <th className="border border-gray-300 p-2 text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 p-2">INSS Laboral</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.inssLaboral)}</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-300 p-2">IR</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.ir)}</td>
+                    </tr>
+                    <tr className="font-bold">
+                      <td className="border border-gray-300 p-2">Total Deducciones</td>
+                      <td className="border border-gray-300 p-2 text-right">{formatCurrency(selectedEmployeeForStub.totalDeducciones)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="text-right">
+                  <p className="text-lg font-bold">Salario Neto: {formatCurrency(selectedEmployeeForStub.salarioNeto)}</p>
                 </div>
-
-                {/* Neto a Recibir */}
-                <div className="border-2 border-gray-800 rounded p-4 bg-gray-50 flex justify-between items-center mb-12">
-                    <span className="font-bold text-lg uppercase">Neto a Recibir:</span>
-                    <span className="font-black text-xl">{formatCurrency(selectedEmployeeForStub.salarioNeto)}</span>
-                </div>
-
-                {/* Firmas */}
-                <div className="flex justify-between px-4 mt-8">
-                    <div className="text-center border-t border-black w-5/12 pt-2">
-                        <p className="font-bold text-xs mb-8">ELABORADO POR</p>
-                    </div>
-                    <div className="text-center border-t border-black w-5/12 pt-2">
-                        <p className="font-bold text-xs">RECIBÍ CONFORME</p>
-                        <p className="text-[10px] mt-1">{selectedEmployeeForStub.nombre}</p>
-                        <p className="text-[10px]">Cédula: {selectedEmployeeForStub.cedula}</p>
-                    </div>
-                </div>
-
               </div>
             </div>
-            <div className="p-4 border-t no-print bg-gray-50 flex justify-end gap-2">
-              <button onClick={() => setIsPayStubModalOpen(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded">Cerrar</button>
-              <button onClick={printStub} className="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700">🖨️ Imprimir Colilla</button>
+            <div className="p-4 border-t no-print">
+              <button onClick={() => { setIsPayStubModalOpen(false); setTimeout(() => window.print(), 100); }} className="bg-blue-600 text-white px-4 py-2 rounded">🖨️ Imprimir</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Hidden iframe for printing pay stub */}
-      <iframe ref={printIframeRef} style={{ display: 'none' }}></iframe>
     </div>
   );
 };

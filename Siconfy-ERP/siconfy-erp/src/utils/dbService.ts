@@ -1,106 +1,102 @@
-import type { Employee, VacationRecord } from '../types';
+// src/utils/dbService.ts
+import { Employee, VacationRecord } from '../types';
 
-const STORAGE_KEY = 'siconfy_empleados';
+const STORAGE_KEY = 'siconfy_employees_v2';
 
-// Simulación de base de datos con localStorage
-export class EmployeeService {
-  static getAll(): Employee[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('Error loading employees:', error);
-      return [];
+const defaultEmployees: Employee[] = [
+    {
+        id: 1,
+        nombre: 'Angel Bolaños',
+        cedula: '001-000000-0000A',
+        noInss: '1234567-8',
+        cargo: 'Gerente General',
+        salarioBase: 70000,
+        comisiones: 0,
+        incentivos: 0,
+        viaticos: 5000,
+        vacacionesPagadas: 0,
+        horasExtras: 0,
+        fechaIngreso: '2018-08-01',
+        estado: 'Activo',
+        frecuenciaPago: 'Mensual',
+        diasVacacionesAcumulados: 12.5,
+        historialVacaciones: []
+    },
+    {
+        id: 2,
+        nombre: 'Antonela Gonzalez',
+        cedula: '001-000000-0000B',
+        noInss: '8765432-1',
+        cargo: 'Asistente Administrativo',
+        salarioBase: 20566,
+        comisiones: 0,
+        incentivos: 0,
+        viaticos: 0,
+        vacacionesPagadas: 0,
+        horasExtras: 0,
+        fechaIngreso: '2016-08-01',
+        estado: 'Activo',
+        frecuenciaPago: 'Quincenal',
+        diasVacacionesAcumulados: 5.0,
+        historialVacaciones: []
     }
-  }
+];
 
-  static save(employee: Employee): void {
-    const employees = this.getAll();
+export const EmployeeService = {
+    getAll: (): Employee[] => {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (!data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultEmployees));
+            return defaultEmployees;
+        }
+        return JSON.parse(data);
+    },
 
-    // Validar salario
-    if (employee.salarioBase <= 0) {
-      throw new Error('Salario inválido');
+    getById: (id: number): Employee | undefined => {
+        const employees = EmployeeService.getAll();
+        return employees.find(e => e.id === id);
+    },
+
+    save: (employee: Omit<Employee, 'id'>): Employee => {
+        const employees = EmployeeService.getAll();
+        const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
+        const newEmployee = { ...employee, id: newId };
+        employees.push(newEmployee);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+        return newEmployee;
+    },
+
+    update: (employee: Employee): Employee => {
+        const employees = EmployeeService.getAll();
+        const index = employees.findIndex(e => e.id === employee.id);
+        if (index !== -1) {
+            employees[index] = employee;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+        }
+        return employee;
+    },
+
+    delete: (id: number): void => {
+        const employees = EmployeeService.getAll();
+        const filtered = employees.filter(e => e.id !== id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    },
+
+    registerVacationUsage: (cedula: string, dias: number, motivo: string) => {
+        const employees = EmployeeService.getAll();
+        const empIndex = employees.findIndex(e => e.cedula === cedula);
+        
+        if (empIndex >= 0) {
+            const emp = employees[empIndex];
+            const newRecord: VacationRecord = {
+                id: Date.now(),
+                fecha: new Date().toISOString().split('T')[0],
+                diasUsados: dias,
+                motivo
+            };
+            emp.historialVacaciones = [...(emp.historialVacaciones || []), newRecord];
+            employees[empIndex] = emp;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+        }
     }
-
-    // Buscar si existe (por cédula)
-    const existingIndex = employees.findIndex(emp => emp.cedula === employee.cedula);
-
-    if (existingIndex >= 0) {
-      // Actualizar existente
-      employees[existingIndex] = { ...employee };
-    } else {
-      // Agregar nuevo
-      employees.push(employee);
-    }
-
-    this.saveAll(employees);
-  }
-
-  static delete(cedula: string): void {
-    const employees = this.getAll();
-    const filtered = employees.filter(emp => emp.cedula !== cedula);
-    this.saveAll(filtered);
-  }
-
-  static findByCedula(cedula: string): Employee | undefined {
-    const employees = this.getAll();
-    return employees.find(emp => emp.cedula === cedula);
-  }
-
-  static update(employee: Employee): void {
-    this.save(employee);
-  }
-
-  static registerVacationUsage(cedula: string, diasUsados: number, motivo: string): void {
-    const employee = this.findByCedula(cedula);
-    if (!employee) {
-      throw new Error('Empleado no encontrado');
-    }
-
-    if (diasUsados > employee.diasVacacionesAcumulados) {
-      throw new Error('No hay suficientes días de vacaciones disponibles');
-    }
-
-    const saldoAnterior = employee.diasVacacionesAcumulados;
-    employee.diasVacacionesAcumulados -= diasUsados;
-
-    const record: VacationRecord = {
-      fecha: new Date().toISOString().split('T')[0],
-      diasUsados,
-      motivo,
-      saldoAnterior,
-      saldoPosterior: employee.diasVacacionesAcumulados
-    };
-
-    if (!employee.historialVacaciones) {
-      employee.historialVacaciones = [];
-    }
-    employee.historialVacaciones.push(record);
-
-    this.update(employee);
-  }
-
-  static updateVacationDays(): void {
-    const employees = this.getAll();
-    employees.forEach(emp => {
-      if (emp.fechaIngreso) {
-        // This will be implemented in prestaciones.ts
-        // emp.diasVacacionesAcumulados = calcularAcumulacion(emp.fechaIngreso);
-      }
-    });
-    this.saveAll(employees);
-  }
-
-  static clearAll(): void {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-
-  private static saveAll(employees: Employee[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-    } catch (error) {
-      console.error('Error saving employees:', error);
-      throw new Error('Error al guardar empleados');
-    }
-  }
-}
+};
