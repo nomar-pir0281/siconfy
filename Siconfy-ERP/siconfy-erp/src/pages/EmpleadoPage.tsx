@@ -4,6 +4,7 @@ import { EmployeeService } from '../utils/dbService';
 import type { Employee } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import * as XLSX from 'xlsx';
+import { downloadExcel } from '../utils/downloadHelper';
 
 export const EmpleadoPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -147,7 +148,7 @@ export const EmpleadoPage = () => {
         const ws = XLSX.utils.json_to_sheet(dataToExport);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Empleados");
-        XLSX.writeFile(wb, "Empleados_Siconfy.xlsx");
+        downloadExcel(wb, "Empleados_Siconfy.xlsx");
     };
 
     // --- DOCUMENTOS ---

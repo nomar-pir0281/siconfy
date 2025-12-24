@@ -14,6 +14,7 @@ import { ReportPreviewModal } from '../components/reports/ReportPreviewModal';
 import { PlanillaReportTable } from '../components/reports/PlanillaReportTable';
 import { StandardReportHeader } from '../components/reports/StandardReportHeader';
 import { StandardReportFooter } from '../components/reports/StandardReportFooter';
+import { downloadExcel, downloadBlob } from '../utils/downloadHelper';
 
 
 export const PlanillaPage = () => {
@@ -285,7 +286,7 @@ export const PlanillaPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, "Planilla");
     const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const safeCompanyName = (empresaInfo.razonSocial || 'Empresa').replace(/[^a-zA-Z0-9]/g, '_');
-    XLSX.writeFile(wb, `Planilla_${safeCompanyName}_${dateStr}.xlsx`);
+    downloadExcel(wb, `Planilla_${safeCompanyName}_${dateStr}.xlsx`);
   };
 
   const handleExportINSS = () => {
@@ -297,19 +298,15 @@ export const PlanillaPage = () => {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "INSS");
-    XLSX.writeFile(wb, "INSS_Siconfy.xlsx");
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadExcel(wb, `INSS_Siconfy_${dateStr}.xlsx`);
   };
 
   const handleExportTXTINSS = () => {
     const csv = generatePlanillaCSV(planillaCalculada);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const dateStr = new Date().toISOString().split('T')[0];
-    a.download = `Planilla_INSS_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `Planilla_INSS_${dateStr}.csv`);
   };
 
   // HELPER MEJORADO: Input "inteligente" (Formato al salir, crudo al editar)

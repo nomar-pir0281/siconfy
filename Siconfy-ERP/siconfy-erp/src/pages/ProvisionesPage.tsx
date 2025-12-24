@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReportPreviewModal } from '../components/reports/ReportPreviewModal';
+import { downloadExcel } from '../utils/downloadHelper';
 
 export const ProvisionesPage = () => {
     const [activeTab, setActiveTab] = useState<'vacaciones' | 'indemnizacion' | 'aguinaldo' | 'resumen'>('resumen');
@@ -92,7 +93,7 @@ export const ProvisionesPage = () => {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, activeTab.toUpperCase());
-        XLSX.writeFile(wb, `${fileName}.xlsx`);
+        downloadExcel(wb, `${fileName}.xlsx`);
     };
 
     const handleExportPDF = () => {
@@ -309,41 +310,43 @@ export const ProvisionesPage = () => {
     );
 
     return (
-        <div className="p-4 md:p-8 animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">Reporte de Provisiones</h1>
+        <>
+            <div className={`p-4 md:p-8 animate-fade-in ${showPreview ? 'print:hidden' : ''}`}>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">Reporte de Provisiones</h1>
 
-                {/* BOTONES DE EXPORTACIÓN */}
-                <div className="flex gap-2">
-                    <button onClick={() => setShowPreview(true)} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
-                        <span>👁️</span> Vista Previa
-                    </button>
-                    <button onClick={handleExportExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
-                        <span>📊</span> Excel
-                    </button>
-                    <button onClick={handleExportPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
-                        <span>📄</span> PDF
-                    </button>
-                    <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
-                        <span>🖨️</span> Imprimir
-                    </button>
+                    {/* BOTONES DE EXPORTACIÓN */}
+                    <div className="flex gap-2">
+                        <button onClick={() => setShowPreview(true)} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
+                            <span>👁️</span> Vista Previa
+                        </button>
+                        <button onClick={handleExportExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
+                            <span>📊</span> Excel
+                        </button>
+                        <button onClick={handleExportPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
+                            <span>📄</span> PDF
+                        </button>
+                        <button onClick={() => window.print()} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg shadow transition-all font-bold text-xs uppercase">
+                            <span>🖨️</span> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                {/* TABS */}
+                <div className="flex space-x-1 mb-6 border-b border-gray-200 overflow-x-auto print:hidden">
+                    <button onClick={() => setActiveTab('resumen')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'resumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Resumen General</button>
+                    <button onClick={() => setActiveTab('vacaciones')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'vacaciones' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}>Vacaciones</button>
+                    <button onClick={() => setActiveTab('indemnizacion')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'indemnizacion' ? 'border-b-2 border-orange-600 text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}>Indemnización</button>
+                    <button onClick={() => setActiveTab('aguinaldo')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'aguinaldo' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>Aguinaldo</button>
+                </div>
+
+                {/* CONTENIDO (RENDERIZADO) */}
+                <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden print:shadow-none print:border-none">
+                    {renderReportContent()}
                 </div>
             </div>
 
-            {/* TABS */}
-            <div className="flex space-x-1 mb-6 border-b border-gray-200 overflow-x-auto print:hidden">
-                <button onClick={() => setActiveTab('resumen')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'resumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Resumen General</button>
-                <button onClick={() => setActiveTab('vacaciones')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'vacaciones' ? 'border-b-2 border-emerald-600 text-emerald-600' : 'text-gray-500 hover:text-gray-700'}`}>Vacaciones</button>
-                <button onClick={() => setActiveTab('indemnizacion')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'indemnizacion' ? 'border-b-2 border-orange-600 text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}>Indemnización</button>
-                <button onClick={() => setActiveTab('aguinaldo')} className={`px-4 py-2 text-sm font-bold uppercase transition-colors ${activeTab === 'aguinaldo' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}>Aguinaldo</button>
-            </div>
-
-            {/* CONTENIDO (RENDERIZADO) */}
-            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden print:shadow-none print:border-none">
-                {renderReportContent()}
-            </div>
-
-            {/* MODAL DE VISTA PREVIA */}
+            {/* MODAL DE VISTA PREVIA (FUERA del div oculto) */}
             <ReportPreviewModal
                 isOpen={showPreview}
                 onClose={() => setShowPreview(false)}
@@ -351,6 +354,7 @@ export const ProvisionesPage = () => {
             >
                 {renderReportContent()}
             </ReportPreviewModal>
+
             {/* ESTILOS DE IMPRESIÓN */}
             <style>{`
                 @media print {
@@ -359,6 +363,6 @@ export const ProvisionesPage = () => {
                     body { -webkit-print-color-adjust: exact; }
                 }
             `}</style>
-        </div>
+        </>
     );
 };
