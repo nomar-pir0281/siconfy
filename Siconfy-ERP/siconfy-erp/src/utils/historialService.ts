@@ -3,6 +3,7 @@ export interface CalculationHistory {
   fecha: Date;
   inputs: any;
   resultado: any;
+  detalles?: any;
 }
 
 const STORAGE_KEY = 'calculationHistory';

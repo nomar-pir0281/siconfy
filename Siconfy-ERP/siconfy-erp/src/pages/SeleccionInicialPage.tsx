@@ -1,10 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-interface SeleccionInicialPageProps {
-  setTabActual: (tab: string) => void;
-}
-
-export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setTabActual }) => {
+export const SeleccionInicialPage: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h2 className="text-3xl font-bold text-center mb-10 text-slate-800">Bienvenido a Siconfy ERP</h2>
@@ -12,7 +10,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Fila 1 */}
         <button
-          onClick={() => setTabActual('nomina')}
+          onClick={() => navigate('/nomina')}
           className="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">💰</div>
@@ -21,7 +19,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
         </button>
 
         <button
-          onClick={() => setTabActual('liquidacion')}
+          onClick={() => navigate('/liquidacion')}
           className="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">⚖️</div>
@@ -30,7 +28,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
         </button>
 
         <button
-          onClick={() => setTabActual('planilla')}
+          onClick={() => navigate('/planilla')}
           className="bg-orange-600 hover:bg-orange-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">📊</div>
@@ -40,7 +38,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
 
         {/* Fila 2 */}
         <button
-          onClick={() => setTabActual('empleados')}
+          onClick={() => navigate('/empleados')}
           className="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">👥</div>
@@ -49,7 +47,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
         </button>
 
         <button
-          onClick={() => setTabActual('vacaciones')}
+          onClick={() => navigate('/vacaciones')}
           className="bg-teal-600 hover:bg-teal-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">🏖️</div>
@@ -58,7 +56,7 @@ export const SeleccionInicialPage: React.FC<SeleccionInicialPageProps> = ({ setT
         </button>
 
         <button
-          onClick={() => setTabActual('historial')}
+          onClick={() => navigate('/historial')}
           className="bg-pink-600 hover:bg-pink-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 text-left"
         >
           <div className="text-3xl mb-2">📜</div>

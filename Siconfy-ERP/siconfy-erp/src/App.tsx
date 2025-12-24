@@ -1,113 +1,44 @@
-import { useState } from 'react';
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { CalculadoraSalario } from './CalculadoraSalario';
 import { CalculadoraLiquidacion } from './CalculadoraLiquidacion';
-import { InformacionUtil } from './InformacionUtil';
+// Imports de Páginas
 import { EmpleadoPage } from './pages/EmpleadoPage';
-import { VacacionesPage } from './pages/VacacionesPage';
+import VacacionesPage from './pages/VacacionesPage';
 import { PlanillaPage } from './pages/PlanillaPage';
 import { SeleccionInicialPage } from './pages/SeleccionInicialPage';
 import { SalarioPeriodicoPage } from './pages/SalarioPeriodicoPage';
 import { IndemnizacionPage } from './pages/IndemnizacionPage';
 import { HistorialPage } from './pages/HistorialPage';
-import { AdBanner } from './components/AdBanner'; 
+import { DocumentosPage } from './pages/DocumentosPage';
+import { CartaRenunciaPage } from './pages/CartaRenunciaPage';
+import { ManualPage } from './pages/ManualPage';
+import { AyudaPage } from './pages/AyudaPage'; // <-- NUEVO
+import { ProvisionesPage } from './pages/ProvisionesPage';
+
+// Componentes UI
+import Layout from './components/Layout';
 
 function App() {
-  const [tabActual, setTabActual] = useState<'nomina' | 'liquidacion' | 'info' | 'empleados' | 'vacaciones' | 'planilla' | 'seleccionInicial' | 'salarioPeriodico' | 'indemnizacion' | 'historial'>('seleccionInicial');
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans text-gray-900 flex flex-col">
-      
-      {/* NAVEGACIÓN SUPERIOR (INTACTA) */}
-      <nav className="bg-slate-800 text-white p-4 shadow-md print:hidden z-50 relative">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 
-            className="text-xl font-bold flex items-center gap-2 cursor-pointer" 
-            onClick={() => setTabActual('seleccionInicial')}
-          >
-            🇳🇮 Siconfy ERP
-          </h1>
-          <div className="space-x-1 md:space-x-2 flex flex-wrap justify-end">
-             <button onClick={() => setTabActual('seleccionInicial')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'seleccionInicial' ? 'bg-red-600' : 'hover:bg-slate-700'}`}>🏠 INICIO</button>
-             <button onClick={() => setTabActual('nomina')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'nomina' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>💰 NETO</button>
-             <button onClick={() => setTabActual('planilla')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'planilla' ? 'bg-orange-600' : 'hover:bg-slate-700'}`}>📊 PLANILLA</button>
-             <button onClick={() => setTabActual('liquidacion')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'liquidacion' ? 'bg-green-600' : 'hover:bg-slate-700'}`}>⚖️ FINIQUITO</button>
-             <button onClick={() => setTabActual('empleados')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'empleados' ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>👥 EMPLEADOS</button>
-             <button onClick={() => setTabActual('vacaciones')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'vacaciones' ? 'bg-teal-600' : 'hover:bg-slate-700'}`}>🏖️ VACACIONES</button>
-             <button onClick={() => setTabActual('historial')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'historial' ? 'bg-pink-600' : 'hover:bg-slate-700'}`}>📜 HISTORIAL</button>
-             <button onClick={() => setTabActual('info')} className={`px-2 py-1 rounded transition text-xs font-bold ${tabActual === 'info' ? 'bg-purple-600' : 'hover:bg-slate-700'}`}>ℹ️ AYUDA</button>
-           </div>
-        </div>
-      </nav>
-
-      {/* LAYOUT PRINCIPAL (INTACTO) */}
-      <div className="flex flex-grow justify-center w-full max-w-[1600px] mx-auto pt-4">
-          
-          {/* Ad Vertical Izquierdo */}
-          <div className="hidden lg:block mr-4">
-              <AdBanner slot="vertical-left" />
-          </div>
-
-          {/* Contenido Central */}
-          <div className="flex flex-col w-full max-w-6xl px-2 md:px-0">
-               <AdBanner slot="top" />
-               
-               <main className="flex-grow bg-white md:bg-transparent shadow-sm md:shadow-none rounded-lg md:rounded-none overflow-hidden">
-                    {tabActual === 'nomina' && <CalculadoraSalario />}
-                    {tabActual === 'liquidacion' && <CalculadoraLiquidacion />}
-                    {tabActual === 'empleados' && <EmpleadoPage />}
-                    {tabActual === 'vacaciones' && <VacacionesPage />}
-                    {tabActual === 'planilla' && <PlanillaPage />}
-                    {tabActual === 'seleccionInicial' && <SeleccionInicialPage setTabActual={setTabActual as (tab: string) => void} />}
-                    {tabActual === 'salarioPeriodico' && <SalarioPeriodicoPage />}
-                    {tabActual === 'indemnizacion' && <IndemnizacionPage setTabActual={setTabActual as (tab: string) => void} />}
-                    {tabActual === 'historial' && <HistorialPage setTabActual={setTabActual as (tab: string) => void} />}
-                    {tabActual === 'info' && <InformacionUtil />}
-               </main>
-
-               <AdBanner slot="bottom" />
-          </div>
-
-          {/* Ad Vertical Derecho */}
-          <div className="hidden lg:block ml-4">
-              <AdBanner slot="vertical-right" />
-          </div>
-
-      </div>
-
-      {/* FOOTER ACTUALIZADO CON REDES SOCIALES */}
-      <footer className="bg-slate-900 text-gray-400 py-6 mt-auto print:hidden text-center text-xs md:text-sm border-t border-slate-700 z-50 relative">
-        <div className="max-w-6xl mx-auto px-4">
-          
-          {/* Sección de Redes Sociales Destacada */}
-          <div className="flex justify-center items-center gap-6 mb-4">
-            <a 
-              href="https://wa.me/50587662961" 
-              className="flex items-center gap-2 text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-full transition-all font-bold no-underline" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <span>📱</span> WhatsApp
-            </a>
-            <a 
-              href="https://facebook.com" 
-              className="flex items-center gap-2 text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full transition-all font-bold no-underline" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <span>f</span> Facebook
-            </a>
-          </div>
-
-          <div className="flex justify-center items-center space-x-4 mb-2 text-gray-500">
-            <a href="/Politica.html" className="hover:text-white transition underline">Política de Privacidad</a>
-            <span>|</span>
-            <a href="/Terminos.html" className="hover:text-white transition underline">Términos de Uso</a>
-          </div>
-          <p>Siconfy ERP © 2025. Todos los derechos reservados.</p>
-        </div>
-      </footer>
-
-    </div>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<SeleccionInicialPage />} />
+        <Route path="nomina" element={<CalculadoraSalario />} />
+        <Route path="planilla" element={<PlanillaPage />} />
+        <Route path="liquidacion" element={<CalculadoraLiquidacion />} />
+        <Route path="empleados" element={<EmpleadoPage />} />
+        <Route path="vacaciones" element={<VacacionesPage />} />
+        <Route path="historial" element={<HistorialPage />} />
+        <Route path="salarioPeriodico" element={<SalarioPeriodicoPage />} />
+        <Route path="indemnizacion" element={<IndemnizacionPage />} />
+        <Route path="documentos" element={<DocumentosPage />} />
+        <Route path="manual" element={<ManualPage />} />
+        <Route path="provisiones" element={<ProvisionesPage />} />
+        <Route path="ayuda" element={<AyudaPage />} /> {/* <-- NUEVA RUTA */}
+      </Route>
+    </Routes>
   );
 }
 

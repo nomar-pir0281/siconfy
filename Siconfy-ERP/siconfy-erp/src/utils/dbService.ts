@@ -1,8 +1,18 @@
 // src/utils/dbService.ts
-import { Employee, VacationRecord } from '../types';
+/**
+ * @deprecated This service is being replaced by Dexie.js based persistence.
+ * Please use the `useEmployees` hook from `src/hooks/useEmployees.ts` for new implementations.
+ * This file is kept for backward compatibility during migration.
+ */
+import { Employee } from '../types';
 
-const STORAGE_KEY = 'siconfy_employees_v2';
+// Configuración de Seguridad y Versionado
+const DB_CONFIG = {
+    KEY: 'siconfy_employees_v3_secure',
+    VERSION: '1.2.0'
+};
 
+// Datos por defecto (Originales preservados)
 const defaultEmployees: Employee[] = [
     {
         id: 1,
@@ -11,6 +21,7 @@ const defaultEmployees: Employee[] = [
         noInss: '1234567-8',
         cargo: 'Gerente General',
         salarioBase: 70000,
+        moneda: 'C$',
         comisiones: 0,
         incentivos: 0,
         viaticos: 5000,
@@ -29,12 +40,13 @@ const defaultEmployees: Employee[] = [
         noInss: '8765432-1',
         cargo: 'Asistente Administrativo',
         salarioBase: 20566,
+        moneda: 'C$',
         comisiones: 0,
         incentivos: 0,
         viaticos: 0,
         vacacionesPagadas: 0,
         horasExtras: 0,
-        fechaIngreso: '2016-08-01',
+        fechaIngreso: '2023-01-15',
         estado: 'Activo',
         frecuenciaPago: 'Quincenal',
         diasVacacionesAcumulados: 5.0,
@@ -42,61 +54,78 @@ const defaultEmployees: Employee[] = [
     }
 ];
 
-export const EmployeeService = {
-    getAll: (): Employee[] => {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (!data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultEmployees));
-            return defaultEmployees;
-        }
-        return JSON.parse(data);
-    },
-
-    getById: (id: number): Employee | undefined => {
-        const employees = EmployeeService.getAll();
-        return employees.find(e => e.id === id);
-    },
-
-    save: (employee: Omit<Employee, 'id'>): Employee => {
-        const employees = EmployeeService.getAll();
-        const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-        const newEmployee = { ...employee, id: newId };
-        employees.push(newEmployee);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-        return newEmployee;
-    },
-
-    update: (employee: Employee): Employee => {
-        const employees = EmployeeService.getAll();
-        const index = employees.findIndex(e => e.id === employee.id);
-        if (index !== -1) {
-            employees[index] = employee;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-        }
-        return employee;
-    },
-
-    delete: (id: number): void => {
-        const employees = EmployeeService.getAll();
-        const filtered = employees.filter(e => e.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-    },
-
-    registerVacationUsage: (cedula: string, dias: number, motivo: string) => {
-        const employees = EmployeeService.getAll();
-        const empIndex = employees.findIndex(e => e.cedula === cedula);
-        
-        if (empIndex >= 0) {
-            const emp = employees[empIndex];
-            const newRecord: VacationRecord = {
-                id: Date.now(),
-                fecha: new Date().toISOString().split('T')[0],
-                diasUsados: dias,
-                motivo
+// --- STORAGE MANAGER (Capa de Seguridad) ---
+class StorageManager {
+    static save<T>(data: T): void {
+        try {
+            const payload = {
+                v: DB_CONFIG.VERSION,
+                ts: Date.now(),
+                data: data
             };
-            emp.historialVacaciones = [...(emp.historialVacaciones || []), newRecord];
-            employees[empIndex] = emp;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+            // Ofuscación básica Base64
+            const secureData = btoa(JSON.stringify(payload));
+            localStorage.setItem(DB_CONFIG.KEY, secureData);
+        } catch (e) {
+            console.error("Error guardando DB:", e);
         }
     }
+
+    static load<T>(): T | null {
+        try {
+            const item = localStorage.getItem(DB_CONFIG.KEY);
+            if (!item) return null;
+            try {
+                const parsed = JSON.parse(atob(item));
+                return parsed.data;
+            } catch {
+                return null;
+            }
+        } catch (e) {
+            return null;
+        }
+    }
+}
+
+// --- LÓGICA DE NEGOCIO ---
+
+const getEmployees = (): Employee[] => {
+    const data = StorageManager.load<Employee[]>();
+    if (!data) {
+        StorageManager.save(defaultEmployees);
+        return defaultEmployees;
+    }
+    return data;
 };
+
+const saveEmployee = (employee: Employee): void => {
+    const employees = getEmployees();
+    const index = employees.findIndex(e => e.id === employee.id);
+
+    if (index >= 0) {
+        employees[index] = employee;
+    } else {
+        if (!employee.id) employee.id = Date.now();
+        employees.push(employee);
+    }
+    StorageManager.save(employees);
+};
+
+const deleteEmployee = (id: number): void => {
+    const employees = getEmployees().filter(e => e.id !== id);
+    StorageManager.save(employees);
+};
+
+// --- EXPORTACIONES ---
+
+// Objeto de servicio para compatibilidad con código legacy
+export const EmployeeService = {
+    getAll: getEmployees,
+    save: saveEmployee,
+    update: saveEmployee, // Reusing save as it handles updates based on ID
+    delete: deleteEmployee,
+    reset: () => StorageManager.save(defaultEmployees)
+};
+
+// Exportaciones nombradas para nuevos componentes
+export { getEmployees, saveEmployee, deleteEmployee };

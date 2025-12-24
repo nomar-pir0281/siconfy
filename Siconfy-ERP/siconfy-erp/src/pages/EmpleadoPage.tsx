@@ -7,14 +7,14 @@ import * as XLSX from 'xlsx';
 
 export const EmpleadoPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
-    
+
     // Modales
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-    
+
     const [editingId, setEditingId] = useState<number | null>(null);
     const [selectedEmployeeForPrint, setSelectedEmployeeForPrint] = useState<Employee | null>(null);
-    const [printDocType, setPrintDocType] = useState<'constancia'|'contrato'|'renuncia'|'despido'|'carta'>('constancia');
+    const [printDocType, setPrintDocType] = useState<'constancia' | 'contrato' | 'renuncia' | 'despido' | 'carta'>('constancia');
 
     // Form State
     const [nombre, setNombre] = useState('');
@@ -26,7 +26,7 @@ export const EmpleadoPage = () => {
     const [fechaIngreso, setFechaIngreso] = useState('');
     const [estado, setEstado] = useState<'Activo' | 'Inactivo'>('Activo');
     const [frecuencia, setFrecuencia] = useState<'Mensual' | 'Quincenal' | 'Semanal'>('Mensual');
-    
+
     // Inputs Fijos
     const [comisiones, setComisiones] = useState('');
     const [incentivos, setIncentivos] = useState('');
@@ -34,6 +34,9 @@ export const EmpleadoPage = () => {
     const [diasVacaciones, setDiasVacaciones] = useState('');
     const [horasExtras, setHorasExtras] = useState('');
     const [deducciones, setDeducciones] = useState('');
+
+    // Validation State
+    const [errors, setErrors] = useState<{ cedula?: string; salario?: string }>({});
 
     useEffect(() => { loadEmployees(); }, []);
     const loadEmployees = () => { setEmployees(EmployeeService.getAll()); };
@@ -50,8 +53,25 @@ export const EmpleadoPage = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        const newErrors: { cedula?: string; salario?: string } = {};
+        if (!cedula.trim()) {
+            newErrors.cedula = 'La Cédula es requerida';
+        }
+        const salarioValue = parseFloat(salario);
+        if (isNaN(salarioValue) || salarioValue <= 0) {
+            newErrors.salario = 'El Salario Base debe ser un número positivo';
+        }
+
+        setErrors(newErrors);
+        if (Object.keys(newErrors).length > 0) {
+            return; // Stop submission if there are errors
+        }
+
         const empData = {
-            nombre, cedula, noInss, cargo, salarioBase: parseFloat(salario),
+            id: 0,
+            nombre, cedula, noInss, cargo, salarioBase: salarioValue,
             comisiones: parseFloat(comisiones) || 0,
             incentivos: parseFloat(incentivos) || 0,
             viaticos: parseFloat(viaticos) || 0,
@@ -64,7 +84,7 @@ export const EmpleadoPage = () => {
 
         if (editingId) {
             const existing = employees.find(e => e.id === editingId);
-            if (existing) EmployeeService.update({ ...existing, ...empData });
+            if (existing) EmployeeService.update({ ...existing, ...empData, id: existing.id });
         } else {
             EmployeeService.save(empData);
         }
@@ -95,6 +115,7 @@ export const EmpleadoPage = () => {
         setComisiones(''); setIncentivos(''); setViaticos(''); setDiasVacaciones(''); setHorasExtras(''); setDeducciones('');
         setFechaIngreso(''); setEstado('Activo'); setFrecuencia('Mensual');
         setContrato('Indeterminado');
+        setErrors({});
     };
 
     const openPrintModal = (emp: Employee) => {
@@ -138,7 +159,7 @@ export const EmpleadoPage = () => {
 
         return (
             <div className="font-serif text-black leading-snug text-justify text-sm">
-                 {printDocType === 'constancia' && (
+                {printDocType === 'constancia' && (
                     <>
                         <div className="text-right mb-6">Managua, {date}</div>
                         <h2 className="text-center font-bold text-lg mb-6 uppercase underline">CONSTANCIA SALARIAL</h2>
@@ -150,8 +171,8 @@ export const EmpleadoPage = () => {
                         <p className="mb-3">Se expide la presente constancia a solicitud del interesado para los fines que estime convenientes.</p>
                         <div className="mt-12 border-t border-black w-48 text-center mx-auto pt-2"><p className="font-bold">Recursos Humanos</p><p className="text-xs">{companyName}</p></div>
                     </>
-                 )}
-                 {printDocType === 'contrato' && (
+                )}
+                {printDocType === 'contrato' && (
                     <div className="text-xs leading-relaxed">
                         <h2 className="text-center font-bold text-base mb-4 uppercase">CONTRATO INDIVIDUAL DE TRABAJO</h2>
                         <p className="mb-2">En Managua, República de Nicaragua, a los {date}, comparecen de una parte <strong>{companyName}</strong>, con domicilio en Managua, representada por su Gerente General, en adelante "EL EMPLEADOR"; y de la otra parte el Sr(a). <strong>{emp.nombre}</strong>, mayor de edad, identificado con Cédula de Identidad No. <strong>{emp.cedula}</strong>, con domicilio en Managua, en adelante "EL TRABAJADOR", quienes convienen en celebrar el presente CONTRATO INDIVIDUAL DE TRABAJO, sujetándose a las disposiciones del Código del Trabajo de Nicaragua y las leyes laborales vigentes.</p>
@@ -206,9 +227,9 @@ export const EmpleadoPage = () => {
                             </div>
                         </div>
                     </div>
-                 )}
-                 {printDocType === 'renuncia' && (
-                     <>
+                )}
+                {printDocType === 'renuncia' && (
+                    <>
                         <div className="text-right mb-6">Managua, {date}</div>
                         <h2 className="text-center font-bold text-lg mb-6 uppercase underline">CARTA DE RENUNCIA VOLUNTARIA</h2>
                         <p className="mb-3"><strong>Señor Gerente General</strong></p>
@@ -222,10 +243,10 @@ export const EmpleadoPage = () => {
                             <p className="font-bold">{emp.nombre}</p>
                             <p className="text-xs">Cédula: {emp.cedula}</p>
                         </div>
-                     </>
-                 )}
-                 {printDocType === 'despido' && (
-                     <>
+                    </>
+                )}
+                {printDocType === 'despido' && (
+                    <>
                         <div className="text-right mb-6">Managua, {date}</div>
                         <h2 className="text-center font-bold text-lg mb-6 uppercase underline">CARTA DE DESPIDO</h2>
                         <p className="mb-3"><strong>{emp.nombre}</strong></p>
@@ -238,10 +259,10 @@ export const EmpleadoPage = () => {
                             <p className="font-bold">Gerente General</p>
                             <p className="text-xs">{companyName}</p>
                         </div>
-                     </>
-                 )}
-                 {printDocType === 'carta' && (
-                     <>
+                    </>
+                )}
+                {printDocType === 'carta' && (
+                    <>
                         <div className="text-right mb-6">Managua, {date}</div>
                         <h2 className="text-center font-bold text-lg mb-6 uppercase underline">CARTA DE RECOMENDACIÓN</h2>
                         <p className="mb-3"><strong>A QUIEN CORRESPONDA:</strong></p>
@@ -253,8 +274,8 @@ export const EmpleadoPage = () => {
                             <p className="font-bold">Recursos Humanos</p>
                             <p className="text-xs">{companyName}</p>
                         </div>
-                     </>
-                 )}
+                    </>
+                )}
             </div>
         );
     };
@@ -341,6 +362,7 @@ export const EmpleadoPage = () => {
                             <th className="p-3 border-r border-slate-600">No INSS</th>
                             <th className="p-3 border-r border-slate-600">Nombre</th>
                             <th className="p-3 border-r border-slate-600">Cargo</th>
+                            <th className="p-3 border-r border-slate-600">Fecha Ingreso</th>
                             <th className="p-3 border-r border-slate-600">Frec.</th>
                             <th className="p-3 border-r border-slate-600 text-right">Salario</th>
                             {/* Nuevas Columnas Fijas */}
@@ -358,15 +380,16 @@ export const EmpleadoPage = () => {
                             <tr key={emp.id} className="border-b hover:bg-gray-50">
                                 <td className="p-3 border-r font-mono text-xs">{emp.id}</td>
                                 <td className="p-3 border-r text-center">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${emp.estado === 'Activo' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{emp.estado.substring(0,3)}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${emp.estado === 'Activo' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>{emp.estado.substring(0, 3)}</span>
                                 </td>
                                 <td className="p-3 border-r font-mono text-xs">{emp.cedula}</td>
                                 <td className="p-3 border-r font-mono text-xs">{emp.noInss || '-'}</td>
                                 <td className="p-3 border-r font-bold">{emp.nombre}</td>
                                 <td className="p-3 border-r text-xs">{emp.cargo}</td>
+                                <td className="p-3 border-r text-xs">{emp.fechaIngreso}</td>
                                 <td className="p-3 border-r text-xs">{emp.frecuenciaPago}</td>
                                 <td className="p-3 border-r text-right font-bold text-blue-800">{formatCurrency(emp.salarioBase)}</td>
-                                
+
                                 {/* Datos Fijos */}
                                 <td className="p-3 border-r text-right text-xs">{emp.comisiones ? formatCurrency(emp.comisiones) : '-'}</td>
                                 <td className="p-3 border-r text-right text-xs">{emp.incentivos ? formatCurrency(emp.incentivos) : '-'}</td>
@@ -394,79 +417,72 @@ export const EmpleadoPage = () => {
                         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1 space-y-2">
                                 <label className="text-xs font-bold uppercase">Datos Personales</label>
-                                <input required placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} className="w-full border p-2 rounded text-sm"/>
-                                <input required placeholder="Cédula" value={cedula} onChange={e=>setCedula(e.target.value)} className="w-full border p-2 rounded text-sm"/>
-                                <input placeholder="INSS" value={noInss} onChange={e=>setNoInss(e.target.value)} className="w-full border p-2 rounded text-sm"/>
-                                <select value={estado} onChange={e=>setEstado(e.target.value as any)} className="w-full border p-2 rounded text-sm"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select>
+                                <input required placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full border p-2 rounded text-sm" />
+                                <div>
+                                    <input required placeholder="Cédula" value={cedula} onChange={e => setCedula(e.target.value)} className={`w-full border p-2 rounded text-sm ${errors.cedula ? 'border-red-500' : ''}`} />
+                                    {errors.cedula && <p className="text-red-500 text-xs mt-1">{errors.cedula}</p>}
+                                </div>
+                                <input placeholder="INSS" value={noInss} onChange={e => setNoInss(e.target.value)} className="w-full border p-2 rounded text-sm" />
+                                <select value={estado} onChange={e => setEstado(e.target.value as any)} className="w-full border p-2 rounded text-sm"><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select>
                             </div>
+
                             <div className="md:col-span-1 space-y-2">
                                 <label className="text-xs font-bold uppercase">Laboral</label>
-                                <input required placeholder="Cargo" value={cargo} onChange={e=>setCargo(e.target.value)} className="w-full border p-2 rounded text-sm"/>
-                                <input required type="number" placeholder="Salario" value={salario} onChange={e=>setSalario(e.target.value)} className="w-full border p-2 rounded text-sm"/>
-                                <select value={frecuencia} onChange={e=>setFrecuencia(e.target.value as any)} className="w-full border p-2 rounded text-sm"><option value="Mensual">Mensual</option><option value="Quincenal">Quincenal</option><option value="Semanal">Semanal</option></select>
-                                <select value={contrato} onChange={e=>setContrato(e.target.value)} className="w-full border p-2 rounded text-sm"><option value="Indeterminado">Indeterminado</option><option value="Determinado">Determinado</option><option value="Servicios">Servicios</option></select>
-                                <input type="date" value={fechaIngreso} onChange={e=>setFechaIngreso(e.target.value)} className="w-full border p-2 rounded text-sm"/>
+                                <input required placeholder="Cargo" value={cargo} onChange={e => setCargo(e.target.value)} className="w-full border p-2 rounded text-sm" />
+                                <div>
+                                    <input required type="number" placeholder="Salario" value={salario} onChange={e => setSalario(e.target.value)} className={`w-full border p-2 rounded text-sm ${errors.salario ? 'border-red-500' : ''}`} />
+                                    {errors.salario && <p className="text-red-500 text-xs mt-1">{errors.salario}</p>}
+                                </div>
+                                <select value={frecuencia} onChange={e => setFrecuencia(e.target.value as any)} className="w-full border p-2 rounded text-sm"><option value="Mensual">Mensual</option><option value="Quincenal">Quincenal</option><option value="Semanal">Semanal</option></select>
+                                <select value={contrato} onChange={e => setContrato(e.target.value)} className="w-full border p-2 rounded text-sm"><option value="Indeterminado">Indeterminado</option><option value="Determinado">Determinado</option><option value="Servicios">Servicios</option></select>
+                                <input type="date" value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} className="w-full border p-2 rounded text-sm" />
                             </div>
+
                             <div className="md:col-span-1 space-y-2 bg-gray-50 p-2 rounded">
                                 <label className="text-xs font-bold uppercase text-green-700">Fijos (Opcional)</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                     <div>
-                                       <label className="text-xs">Comisiones</label>
-                                       <input type="number" placeholder="0.00" value={comisiones} onChange={e=>setComisiones(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                     <div>
-                                       <label className="text-xs">Incentivos</label>
-                                       <input type="number" placeholder="0.00" value={incentivos} onChange={e=>setIncentivos(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                     <div>
-                                       <label className="text-xs">Viáticos</label>
-                                       <input type="number" placeholder="0.00" value={viaticos} onChange={e=>setViaticos(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                     <div>
-                                       <label className="text-xs">Días Vac.</label>
-                                       <input type="number" placeholder="0" value={diasVacaciones} onChange={e=>setDiasVacaciones(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                     <div>
-                                       <label className="text-xs">Cant. Hrs. Extras</label>
-                                       <input type="number" placeholder="0" value={horasExtras} onChange={e=>setHorasExtras(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                     <div>
-                                       <label className="text-xs">Deducciones</label>
-                                       <input type="number" placeholder="0.00" value={deducciones} onChange={e=>setDeducciones(e.target.value)} className="border p-1 rounded text-xs w-full"/>
-                                     </div>
-                                 </div>
+                                    <div><label className="text-xs">Comisiones</label><input type="number" placeholder="0.00" value={comisiones} onChange={e => setComisiones(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                    <div><label className="text-xs">Incentivos</label><input type="number" placeholder="0.00" value={incentivos} onChange={e => setIncentivos(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                    <div><label className="text-xs">Viáticos</label><input type="number" placeholder="0.00" value={viaticos} onChange={e => setViaticos(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                    <div><label className="text-xs">Días Vac.</label><input type="number" placeholder="0" value={diasVacaciones} onChange={e => setDiasVacaciones(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                    <div><label className="text-xs">Cant. Hrs. Extras</label><input type="number" placeholder="0" value={horasExtras} onChange={e => setHorasExtras(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                    <div><label className="text-xs">Deducciones</label><input type="number" placeholder="0.00" value={deducciones} onChange={e => setDeducciones(e.target.value)} className="border p-1 rounded text-xs w-full" /></div>
+                                </div>
                             </div>
+
                             <div className="col-span-3 flex justify-end gap-2 mt-4 pt-4 border-t">
-                                <button type="button" onClick={()=>setIsEditModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
+                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
                             </div>
                         </form>
                     </div>
-                </div>
+                </div >
             )}
 
             {/* MODAL PRINT (Ahora con ID único para CSS) */}
-            {isPrintModalOpen && selectedEmployeeForPrint && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 print:bg-white print:static print:block">
-                    <div className="bg-white w-full max-w-4xl h-[90vh] flex flex-col md:flex-row overflow-hidden rounded shadow-2xl print:shadow-none print:h-auto print:w-full">
-                        <div className="w-full md:w-1/4 bg-gray-100 p-4 border-r no-print flex flex-col gap-2">
-                            <h3 className="font-bold text-gray-700 mb-4">Documento</h3>
-                            {['constancia','contrato','renuncia','despido','carta'].map(type => (
-                                <button key={type} onClick={()=>setPrintDocType(type as any)} className={`text-left p-2 rounded text-sm uppercase font-bold ${printDocType===type?'bg-blue-600 text-white':'bg-white hover:bg-gray-200'}`}>{type}</button>
-                            ))}
-                            <div className="mt-auto flex flex-col gap-2">
-                                <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded font-bold hover:bg-slate-900 transition shadow">🖨️ IMPRIMIR</button>
-                                <button onClick={()=>setIsPrintModalOpen(false)} className="bg-red-100 text-red-700 py-2 rounded font-bold hover:bg-red-200 transition">Cerrar</button>
+            {
+                isPrintModalOpen && selectedEmployeeForPrint && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 print:bg-white print:static print:block">
+                        <div className="bg-white w-full max-w-4xl h-[90vh] flex flex-col md:flex-row overflow-hidden rounded shadow-2xl print:shadow-none print:h-auto print:w-full">
+                            <div className="w-full md:w-1/4 bg-gray-100 p-4 border-r no-print flex flex-col gap-2">
+                                <h3 className="font-bold text-gray-700 mb-4">Documento</h3>
+                                {['constancia', 'contrato', 'renuncia', 'despido', 'carta'].map(type => (
+                                    <button key={type} onClick={() => setPrintDocType(type as any)} className={`text-left p-2 rounded text-sm uppercase font-bold ${printDocType === type ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-200'}`}>{type}</button>
+                                ))}
+                                <div className="mt-auto flex flex-col gap-2">
+                                    <button onClick={handlePrint} className="bg-slate-800 text-white py-3 rounded font-bold hover:bg-slate-900 transition shadow">🖨️ IMPRIMIR</button>
+                                    <button onClick={() => setIsPrintModalOpen(false)} className="bg-red-100 text-red-700 py-2 rounded font-bold hover:bg-red-200 transition">Cerrar</button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-full md:w-3/4 bg-gray-500 p-8 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">
-                            <div id="doc-printable-area" className="bg-white shadow-lg min-h-[27cm] p-12 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full">
-                                {renderDocumentContent()}
+                            <div className="w-full md:w-3/4 bg-gray-500 p-8 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">
+                                <div id="doc-printable-area" className="bg-white shadow-lg min-h-[27cm] p-12 mx-auto max-w-[21cm] print:shadow-none print:m-0 print:w-full">
+                                    {renderDocumentContent()}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };

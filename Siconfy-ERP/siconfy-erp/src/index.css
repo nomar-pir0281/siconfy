@@ -6,33 +6,47 @@
    ESTILOS DE IMPRESIÓN (SOLUCIÓN ROBUSTA)
    ========================================================================== */
 @media print {
+
   /* 1. Configuración de Página */
   @page {
-    margin: 1cm;
+    margin: 5mm;
+    /* Margen Estrecho Global */
     size: auto;
   }
 
   /* Clase específica para Planilla Horizontal */
   @page :first {
-    margin-top: 0; /* A veces necesario para navegadores antiguos */
+    margin-top: 0;
+    /* A veces necesario para navegadores antiguos */
   }
 
   body.printing-landscape {
     /* Forzar ancho para tablas grandes */
     min-width: 1024px;
   }
-  
+
   /* 2. Ocultar TODO lo que no sea explícitamente imprimible */
-  body > *:not(.document-print-container):not(#root) {
+  body>*:not(.document-print-container):not(#root):not(#printable-area) {
     display: none !important;
   }
 
-  nav, footer, aside, .ad-banner, button, input, select, textarea, .print\:hidden {
+  nav,
+  footer,
+  aside,
+  .ad-banner,
+  button,
+  input,
+  select,
+  textarea,
+  .print\:hidden {
     display: none !important;
   }
 
   /* 3. Resetear contenedores para que el documento ocupe todo */
-  body, #root, main, .main-content {
+  body,
+  #root,
+  main,
+  .main-content {
     background-color: white !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -66,17 +80,20 @@
     border-collapse: collapse !important;
     page-break-inside: auto;
   }
+
   tr {
     page-break-inside: avoid;
     page-break-after: auto;
   }
+
   thead {
     display: table-header-group;
   }
+
   tfoot {
     display: table-footer-group;
   }
-  
+
   /* Utilidad para forzar landscape via CSS si @page falla (fallback) */
   .force-landscape {
     width: 100vw;

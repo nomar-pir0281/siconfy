@@ -1,245 +1,247 @@
-import React, { useState, useRef } from 'react';
+import { InfoSection } from '../components/InfoSection';
+import React, { useState } from 'react';
+import { Card } from '../components/ui/Card';
 import { calcularNominaMensual } from '../utils/nomina';
-import { formatCurrency, parseCurrency, formatNumberForDisplay } from '../utils/formatters';
-import * as historialService from '../utils/historialService';
+import { formatCurrency } from '../utils/formatters';
+import { useCurrencyInput } from '../hooks/useCurrencyInput';
+import { ReportPreviewModal } from '../components/reports/ReportPreviewModal';
+import { StandardReportHeader } from '../components/reports/StandardReportHeader';
+import { StandardReportFooter } from '../components/reports/StandardReportFooter';
+import { SalaryDistributionChart } from '../components/charts/SalaryDistributionChart';
 
-interface SalarioPeriodicoPageProps {
-  setTabActual: (tab: string) => void;
-}
+export const SalarioPeriodicoPage = () => {
+    // Estado
+    const { value: salario, inputValue: salarioDisplay, setInputValue, handleBlur: handleSalarioBlur, handleFocus: handleSalarioFocus } = useCurrencyInput(0);
 
-export const SalarioPeriodicoPage: React.FC<SalarioPeriodicoPageProps> = ({ setTabActual }) => {
-  const [salario, setSalario] = useState<number>(0);
-  const [viaticos, setViaticos] = useState<number>(0);
-  const [horasExtras, setHorasExtras] = useState<number>(0);
-  const [comisiones, setComisiones] = useState<number>(0);
-  const [incentivos, setIncentivos] = useState<number>(0);
-  const [deducciones, setDeducciones] = useState<number>(0);
-  const [frecuencia, setFrecuencia] = useState<'mensual' | 'quincenal' | 'semanal'>('mensual');
-  const containerRef = useRef<HTMLDivElement>(null);
+    // Función adaptadora para el evento onChange
+    const handleSalarioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputValue(e.target.value);
+    };
+    const [frecuencia, setFrecuencia] = useState<'Quincenal' | 'Semanal'>('Quincenal');
+    const [nombre, setNombre] = useState('');
+    const [showPreview, setShowPreview] = useState(false);
 
-  // Raw input values for better UX
-  const [salarioInput, setSalarioInput] = useState<string>('');
-  const [viaticosInput, setViaticosInput] = useState<string>('');
-  const [comisionesInput, setComisionesInput] = useState<string>('');
-  const [incentivosInput, setIncentivosInput] = useState<string>('');
-  const [deduccionesInput, setDeduccionesInput] = useState<string>('');
+    // Inputs Opcionales
+    const [horasExtras, setHorasExtras] = useState(0);
+    const [comisiones, setComisiones] = useState(0);
+    const [incentivos, setIncentivos] = useState(0);
+    const [viaticos, setViaticos] = useState(0);
+    const [deducciones, setDeducciones] = useState(0); // Préstamos, etc.
 
-  // State for calculation result
-  const [result, setResult] = useState<any>(null);
+    const [resultado, setResultado] = useState<any>(null);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const inputs = containerRef.current?.querySelectorAll('input, select, button');
-      if (inputs) {
-        const arr = Array.from(inputs) as HTMLElement[];
-        const index = arr.indexOf(e.currentTarget);
-        if (index > -1 && index < arr.length - 1) arr[index + 1].focus();
-      }
-    }
-  };
+    const handleCalcular = () => {
+        if (!salario) return;
 
-  const handleCalcular = () => {
-    if (salario > 0) {
-      const res = calcularNominaMensual(salario, horasExtras, comisiones, incentivos, deducciones, viaticos, frecuencia);
-      setResult(res);
-      if (res) {
-        historialService.saveCalculation({
-          tipo: 'salario-periodico',
-          fecha: new Date(),
-          inputs: { salario, viaticos, frecuencia, horasExtras, comisiones, incentivos, deducciones },
-          resultado: res
+        // CORRECCIÓN: Llamamos a la función con el objeto de opciones
+        const res = calcularNominaMensual(salario, {
+            horasExtras,
+            comisiones,
+            incentivos,
+            viaticos,
+            otrosDeducciones: deducciones,
+            frecuencia: frecuencia.toLowerCase() as any
         });
-      }
-    }
-  };
 
-  const handleLimpiar = () => {
-    setSalario(0); setViaticos(0); setHorasExtras(0); setComisiones(0); setIncentivos(0); setDeducciones(0);
-    setSalarioInput(''); setViaticosInput(''); setComisionesInput(''); setIncentivosInput(''); setDeduccionesInput('');
-    setResult(null);
-  };
+        setResultado(res);
+    };
 
-  // Blur handlers for formatting
-  const handleSalarioBlur = () => {
-    const numValue = parseCurrency(salarioInput);
-    setSalario(numValue);
-    setSalarioInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
-  };
+    const handleLimpiar = () => {
+        handleSalarioChange({ target: { value: '' } } as any);
+        setHorasExtras(0); setComisiones(0); setIncentivos(0); setViaticos(0); setDeducciones(0);
+        setResultado(null);
+    };
 
-  const handleViaticosBlur = () => {
-    const numValue = parseCurrency(viaticosInput);
-    setViaticos(numValue);
-    setViaticosInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
-  };
+    return (
+        <div className="max-w-4xl mx-auto px-4 pb-12 animate-fade-in">
+            <Card title="Calculadora de Salario (Quincenal / Semanal)" action={
+                <button onClick={handleLimpiar} className="text-xs font-bold text-stone-500 hover:underline">Limpiar</button>
+            }>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Formulario */}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-stone-600 mb-1">Frecuencia de Pago</label>
+                            <div className="flex gap-2">
+                                <button onClick={() => setFrecuencia('Quincenal')} className={`flex-1 py-2 rounded text-sm font-bold border ${frecuencia === 'Quincenal' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-stone-600 border-stone-300'}`}>Quincenal</button>
+                                <button onClick={() => setFrecuencia('Semanal')} className={`flex-1 py-2 rounded text-sm font-bold border ${frecuencia === 'Semanal' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-stone-600 border-stone-300'}`}>Semanal</button>
+                            </div>
+                        </div>
 
-  const handleComisionesBlur = () => {
-    const numValue = parseCurrency(comisionesInput);
-    setComisiones(numValue);
-    setComisionesInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
-  };
+                        <div>
+                            <label className="block text-xs font-bold text-stone-600 mb-1">Nombre Colaborador (Opcional)</label>
+                            <input className="w-full p-2 border rounded text-sm text-stone-800" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Juan Pérez" />
+                        </div>
 
-  const handleIncentivosBlur = () => {
-    const numValue = parseCurrency(incentivosInput);
-    setIncentivos(numValue);
-    setIncentivosInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
-  };
+                        <div>
+                            <label className="block text-xs font-bold text-stone-600 mb-1">Salario Bruto ({frecuencia})</label>
+                            <input className="w-full p-2 border rounded font-bold text-lg text-stone-800" value={salarioDisplay} onChange={handleSalarioChange} onBlur={handleSalarioBlur} onFocus={handleSalarioFocus} placeholder="0.00" autoFocus />
+                            <p className="text-[10px] text-stone-400 mt-1">* Ingrese el salario pactado por {frecuencia.toLowerCase()}.</p>
+                        </div>
 
-  const handleDeduccionesBlur = () => {
-    const numValue = parseCurrency(deduccionesInput);
-    setDeducciones(numValue);
-    setDeduccionesInput(numValue > 0 ? formatNumberForDisplay(numValue) : '');
-  };
+                        <div className="grid grid-cols-2 gap-3 bg-stone-50 p-3 rounded border border-stone-200">
+                            <div className="col-span-2 text-xs font-bold text-stone-500 uppercase">Ingresos Adicionales</div>
+                            <div>
+                                <label className="text-[10px] font-bold block mb-1">Horas Extras (C$)</label>
+                                <input type="number" className="w-full p-1 border rounded text-sm" value={horasExtras || ''} onChange={e => setHorasExtras(Number(e.target.value))} placeholder="0" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold block mb-1">Comisiones</label>
+                                <input type="number" className="w-full p-1 border rounded text-sm" value={comisiones || ''} onChange={e => setComisiones(Number(e.target.value))} placeholder="0" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold block mb-1">Incentivos</label>
+                                <input type="number" className="w-full p-1 border rounded text-sm" value={incentivos || ''} onChange={e => setIncentivos(Number(e.target.value))} placeholder="0" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold block mb-1">Viáticos</label>
+                                <input type="number" className="w-full p-1 border rounded text-sm" value={viaticos || ''} onChange={e => setViaticos(Number(e.target.value))} placeholder="0" />
+                            </div>
+                        </div>
 
-  // Focus handlers for raw input
-  const handleSalarioFocus = () => {
-    setSalarioInput(salarioInput.replace(/,/g, ''));
-  };
+                        <div>
+                            <label className="text-xs font-bold text-stone-600 block mb-1">Otras Deducciones (Préstamos, etc.)</label>
+                            <input type="number" className="w-full p-2 border rounded" value={deducciones || ''} onChange={e => setDeducciones(Number(e.target.value))} placeholder="0.00" />
+                        </div>
 
-  const handleViaticosFocus = () => {
-    setViaticosInput(viaticosInput.replace(/,/g, ''));
-  };
+                        <button onClick={handleCalcular} className="w-full bg-green-600 text-white font-bold py-3 rounded shadow hover:bg-green-700 transition">Calcular Salario Neto</button>
+                    </div>
 
-  const handleComisionesFocus = () => {
-    setComisionesInput(comisionesInput.replace(/,/g, ''));
-  };
+                    {/* Resultados */}
+                    {/* Resultados */}
+                    <div className="bg-stone-50 rounded-lg p-6 border border-stone-200 flex flex-col justify-center">
+                        {!resultado ? (
+                            <div className="text-center text-stone-400"><p className="text-4xl">💰</p><p className="text-sm mt-2">Ingrese monto para calcular</p></div>
+                        ) : (
+                            <div className="animate-fade-in-up space-y-6">
+                                {/* Encabezado Neto */}
+                                <div className="text-center border-b border-stone-200 pb-4">
+                                    <p className="text-xs font-bold text-stone-500 uppercase">Neto a Recibir</p>
+                                    <p className="text-4xl font-black text-green-700">{formatCurrency(resultado.salarioNeto)}</p>
+                                    <p className="text-xs text-stone-400 mt-1">{frecuencia}</p>
+                                </div>
 
-  const handleIncentivosFocus = () => {
-    setIncentivosInput(incentivosInput.replace(/,/g, ''));
-  };
+                                {/* Contenedor Grid: Datos vs Gráfico */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                                    {/* Columna Izquierda: Datos Numéricos */}
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between p-2 rounded bg-white border border-gray-100 shadow-sm">
+                                            <span className="text-stone-600 font-bold">Total Ingresos:</span>
+                                            <span className="font-bold text-gray-800">{formatCurrency(resultado.totalIngresos)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 rounded bg-red-50 border border-red-100">
+                                            <span className="text-red-700">INSS Laboral (7%):</span>
+                                            <span className="font-mono font-bold text-red-700">- {formatCurrency(resultado.inssLaboral)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 rounded bg-red-50 border border-red-100">
+                                            <span className="text-red-700">IR (Rentas Trabajo):</span>
+                                            <span className="font-mono font-bold text-red-700">- {formatCurrency(resultado.ir)}</span>
+                                        </div>
+                                        {deducciones > 0 && (
+                                            <div className="flex justify-between p-2 rounded bg-slate-50 border border-slate-200">
+                                                <span className="text-slate-600">Otras Deducciones:</span>
+                                                <span className="font-mono font-bold text-slate-600">- {formatCurrency(deducciones)}</span>
+                                            </div>
+                                        )}
+                                    </div>
 
-  const handleDeduccionesFocus = () => {
-    setDeduccionesInput(deduccionesInput.replace(/,/g, ''));
-  };
+                                    {/* Columna Derecha: Gráfico Educativo */}
+                                    <div className="flex justify-center transform scale-90 sm:scale-100">
+                                        <SalaryDistributionChart
+                                            salarioBruto={resultado.totalIngresos}
+                                            salarioNeto={resultado.salarioNeto}
+                                            inssLaboral={resultado.inssLaboral}
+                                            ir={resultado.ir}
+                                            otrasDeducciones={deducciones}
+                                        />
+                                    </div>
+                                </div>
 
-  return (
-    <div ref={containerRef} className="max-w-6xl mx-auto">
-      <div className="print:hidden bg-[#F9F6F0] rounded-xl shadow-lg p-8 border border-stone-200 mt-4">
-        <div className="flex justify-between items-center mb-6 border-b border-stone-300 pb-4">
-          <h2 className="text-xl font-bold text-stone-800 uppercase tracking-wide">Cálculo de Salario Periódico</h2>
-          <div className="space-x-2">
-            <button onClick={handleCalcular} className="px-4 py-1.5 text-xs font-bold text-stone-600 bg-stone-200 hover:bg-stone-300 rounded transition">
-              CALCULAR
-            </button>
-            <button onClick={handleLimpiar} className="px-4 py-1.5 text-xs font-bold text-stone-600 bg-stone-200 hover:bg-stone-300 rounded transition">
-              LIMPIAR
-            </button>
-            <button onClick={() => setTabActual('seleccionInicial')} className="px-4 py-1.5 text-xs font-bold text-stone-600 bg-stone-200 hover:bg-stone-300 rounded transition">
-              VOLVER
-            </button>
-          </div>
+                                <button onClick={() => setShowPreview(true)} className="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded shadow-lg flex items-center justify-center gap-2 transform active:scale-95 transition-all">
+                                    <span>📄</span> Ver Colilla de Pago
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Card>
+
+            {/* MODAL DE PREVIEW */}
+            <ReportPreviewModal
+                isOpen={showPreview}
+                onClose={() => setShowPreview(false)}
+                title="COMPROBANTE DE PAGO"
+                subtitle={`Período: ${frecuencia}`}
+            >
+                {resultado && (
+                    <div className="p-4 border-2 border-slate-800 rounded-lg">
+                        <div className="flex justify-between items-center mb-6 border-b border-dashed border-slate-300 pb-4">
+                            <div>
+                                <h3 className="text-xl font-bold uppercase">{nombre || 'COLABORADOR GENÉRICO'}</h3>
+                                <p className="text-xs text-stone-500">Beneficiario</p>
+                            </div>
+                            <div className="text-right">
+                                <h4 className="text-lg font-bold text-slate-700">{formatCurrency(resultado.salarioNeto)}</h4>
+                                <p className="text-xs font-bold uppercase text-slate-500">Monto Neto</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-8 text-sm mb-6">
+                            <div>
+                                <h5 className="font-bold text-slate-600 uppercase text-xs border-b border-slate-200 mb-2 pb-1">Ingresos</h5>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between">
+                                        <span>Salario Base</span>
+                                        <span className="font-mono">{formatCurrency(salario)}</span>
+                                    </div>
+                                    {horasExtras > 0 && <div className="flex justify-between"><span>Horas Extras</span><span className="font-mono">{formatCurrency(horasExtras)}</span></div>}
+                                    {comisiones > 0 && <div className="flex justify-between"><span>Comisiones</span><span className="font-mono">{formatCurrency(comisiones)}</span></div>}
+                                    {incentivos > 0 && <div className="flex justify-between"><span>Incentivos</span><span className="font-mono">{formatCurrency(incentivos)}</span></div>}
+                                    {viaticos > 0 && <div className="flex justify-between"><span>Viáticos</span><span className="font-mono">{formatCurrency(viaticos)}</span></div>}
+                                    <div className="flex justify-between font-bold border-t border-slate-200 pt-1 mt-1">
+                                        <span>Total Ingresos</span>
+                                        <span className="font-mono">{formatCurrency(resultado.totalIngresos)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 className="font-bold text-slate-600 uppercase text-xs border-b border-slate-200 mb-2 pb-1">Deducciones</h5>
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-red-700">
+                                        <span>INSS Laboral</span>
+                                        <span className="font-mono">{formatCurrency(resultado.inssLaboral)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-red-700">
+                                        <span>IR (Rentas)</span>
+                                        <span className="font-mono">{formatCurrency(resultado.ir)}</span>
+                                    </div>
+                                    {deducciones > 0 && (
+                                        <div className="flex justify-between text-red-700">
+                                            <span>Otras Ded.</span>
+                                            <span className="font-mono">{formatCurrency(deducciones)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between font-bold border-t border-slate-200 pt-1 mt-1 text-red-800">
+                                        <span>Total Deducciones</span>
+                                        <span className="font-mono">{formatCurrency(resultado.totalDeducciones)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex justify-between gap-8 pt-8 px-8">
+                            <div className="border-t border-black flex-1 text-center text-xs font-bold pt-2">
+                                RECIBÍ CONFORME
+                            </div>
+                            <div className="border-t border-black flex-1 text-center text-xs font-bold pt-2">
+                                AUTORIZADO POR
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </ReportPreviewModal>
+
+            <InfoSection type="neto" />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-blue-700 border-b pb-1">DATOS BASE</h3>
-            <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Salario Base</label>
-              <input type="text" value={salarioInput} onChange={(e) => setSalarioInput(e.target.value)} onFocus={handleSalarioFocus} onBlur={handleSalarioBlur} onKeyDown={handleKeyDown}
-                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0.00" autoFocus />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Viáticos</label>
-              <input type="text" value={viaticosInput} onChange={(e) => setViaticosInput(e.target.value)} onFocus={handleViaticosFocus} onBlur={handleViaticosBlur} onKeyDown={handleKeyDown}
-                className="w-48 border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800 font-semibold focus:ring-1 focus:ring-blue-500 outline-none" placeholder="0.00" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Frecuencia</label>
-              <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value as 'mensual' | 'quincenal' | 'semanal')} onKeyDown={handleKeyDown}
-                className="w-full border-stone-300 rounded bg-white p-2 shadow-sm text-stone-800">
-                <option value="mensual">Mensual</option>
-                <option value="quincenal">Quincenal</option>
-                <option value="semanal">Semanal</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-green-700 border-b pb-1">VARIABLES</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-bold text-stone-500 uppercase">Horas Extras</label>
-                <input type="number" value={horasExtras || ''} onChange={(e) => setHorasExtras(Number(e.target.value))} onKeyDown={handleKeyDown}
-                  className="w-32 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="Cant" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-stone-500 uppercase">Comisiones</label>
-                <input type="text" value={comisionesInput} onChange={(e) => setComisionesInput(e.target.value)} onFocus={handleComisionesFocus} onBlur={handleComisionesBlur} onKeyDown={handleKeyDown}
-                  className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Incentivos</label>
-              <input type="text" value={incentivosInput} onChange={(e) => setIncentivosInput(e.target.value)} onFocus={handleIncentivosFocus} onBlur={handleIncentivosBlur} onKeyDown={handleKeyDown}
-                className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-red-700 border-b pb-1">DEDUCCIONES</h3>
-            <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase">Préstamos / Otros</label>
-              <input type="text" value={deduccionesInput} onChange={(e) => setDeduccionesInput(e.target.value)} onFocus={handleDeduccionesFocus} onBlur={handleDeduccionesBlur} onKeyDown={handleKeyDown}
-                className="w-40 border-stone-300 rounded bg-white p-2 shadow-sm text-sm" placeholder="0.00" />
-            </div>
-          </div>
-        </div>
-
-        {/* RESULTADOS EN PANTALLA */}
-        {result && (
-          <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden border border-stone-200">
-            <div className="bg-green-700 text-white text-center py-2 font-bold uppercase tracking-wider text-sm">
-              Resultados del Periodo ({frecuencia})
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center leading-loose">
-              <div>
-                <p className="text-xs text-stone-500 font-bold uppercase">Total Ingresos</p>
-                <p className="text-xl font-bold text-stone-800">{formatCurrency(result.totalIngresos)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-stone-500 font-bold uppercase">Total Deducciones</p>
-                <p className="text-xl font-bold text-red-600">{formatCurrency(result.totalDeducciones)}</p>
-              </div>
-              <div className="bg-green-50 rounded-lg border border-green-100 py-2">
-                <p className="text-xs text-green-800 font-bold uppercase">Neto a Recibir</p>
-                <p className="text-2xl font-extrabold text-green-700">{formatCurrency(result.salarioNeto)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* REPORTE DE IMPRESIÓN */}
-      {result && (
-        <div className="hidden print:block p-8 bg-white text-black font-serif leading-relaxed">
-          <div className="text-center mb-8 border-b-2 border-black pb-4">
-            <h1 className="text-2xl font-bold uppercase">Comprobante de Pago ({frecuencia})</h1>
-            <p className="text-sm">Fecha: {new Date().toLocaleDateString('es-NI')}</p>
-          </div>
-
-          <table className="w-full text-left text-sm mb-6">
-            <thead><tr className="bg-gray-100 border-b border-black"><th className="py-2 px-2">Concepto</th><th className="py-2 px-2 text-right">Monto</th></tr></thead>
-            <tbody>
-              <tr><td className="py-1 px-2">Salario Base</td><td className="py-1 px-2 text-right">{formatCurrency(result.salarioBase)}</td></tr>
-              {result.viaticos > 0 && <tr><td className="py-1 px-2">Viáticos</td><td className="py-1 px-2 text-right">{formatCurrency(result.viaticos)}</td></tr>}
-              {result.montoHorasExtras > 0 && <tr><td className="py-1 px-2">Horas Extras</td><td className="py-1 px-2 text-right">{formatCurrency(result.montoHorasExtras)}</td></tr>}
-              {result.comisiones > 0 && <tr><td className="py-1 px-2">Comisiones</td><td className="py-1 px-2 text-right">{formatCurrency(result.comisiones)}</td></tr>}
-              {result.incentivos > 0 && <tr><td className="py-1 px-2">Incentivos</td><td className="py-1 px-2 text-right">{formatCurrency(result.incentivos)}</td></tr>}
-              <tr className="font-bold bg-gray-50"><td className="py-2 px-2 border-t border-black">TOTAL INGRESOS</td><td className="py-2 px-2 text-right border-t border-black">{formatCurrency(result.totalIngresos)}</td></tr>
-
-              <tr><td className="py-1 px-2 pt-4 text-red-800">INSS Laboral (7%)</td><td className="py-1 px-2 pt-4 text-right text-red-800">-{formatCurrency(result.inssLaboral)}</td></tr>
-              <tr><td className="py-1 px-2 text-red-800">IR (Renta)</td><td className="py-1 px-2 text-right text-red-800">-{formatCurrency(result.ir)}</td></tr>
-              <tr><td className="py-1 px-2 text-red-800">Otras Deducciones</td><td className="py-1 px-2 text-right text-red-800">-{formatCurrency(result.deducciones)}</td></tr>
-
-              <tr className="font-bold text-lg border-t-2 border-black bg-green-50"><td className="py-4 px-2">NETO A RECIBIR</td><td className="py-4 px-2 text-right">{formatCurrency(result.salarioNeto)}</td></tr>
-            </tbody>
-          </table>
-          <div className="text-center text-xs text-gray-500 mt-8">
-            <p>Recibí conforme el importe neto detallado en este comprobante.</p>
-            <div className="mt-12 border-t border-black w-64 mx-auto pt-2 font-bold">Firma del Colaborador</div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 };

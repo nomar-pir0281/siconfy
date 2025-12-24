@@ -36,7 +36,7 @@ describe('Vacaciones - Cálculos', () => {
 
   it('Debe calcular período Dec-Nov correctamente', () => {
     // Test the period calculation from prestaciones.ts logic
-    const calcularAcumulacion = (fechaIngreso: string) => {
+    const calcularAcumulacion = () => {
       const ahora = new Date('2024-12-14');
       const añoActual = ahora.getFullYear();
       const mesActual = ahora.getMonth() + 1;
@@ -57,7 +57,7 @@ describe('Vacaciones - Cálculos', () => {
 
     // Current period: Dec 1, 2023 to Dec 14, 2024 = 14 days (since Dec 14 - Dec 1 = 13 days + 1 = 14)
     // 14 / 30 * 2.5 = 1.166...
-    const result = calcularAcumulacion('2020-01-01'); // Old hire date
+    const result = calcularAcumulacion(); // Old hire date
     console.log('DEBUG Test - Period calculation result:', result);
     expect(result).toBeCloseTo(1.166, 2); // Should be proportional for 14 days in period
   });
